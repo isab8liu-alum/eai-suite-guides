@@ -102,5 +102,19 @@ helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
 > **Finding your service name:** Run `kubectl get svc -n $namespace` and look for the service associated with your deployed model.
 
 ------------------------------------------------------------------------
+## Undeploying a Blueprint
+
+Run the following in the terminal:
+
+```bash
+helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart | kubectl delete -f - -n $namespace
+```
+
+Alternatively, if you saved the manifest earlier, delete it directly:
+
+```bash
+helm template delete -f demo-blueprint.yaml -n $namespace
+```
+
 
 **Next:** Proceed to the [Troubleshooting](./06-5-troubleshooting.md) guide if you encounter any issues, or the [Appendix](./07-appendix.md) for reference commands and cleanup steps.
