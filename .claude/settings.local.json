@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python redact_profile_info.py)",
+      "Bash(python redact_table_info.py)",
+      "Bash(python analyze_image.py)",
+      "Bash(python find_text_location.py)",
+      "Bash(python find_all_light_pixels.py)"
+    ]
+  }
+}

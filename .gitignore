@@ -1,0 +1,19 @@
+# Python scripts for image redaction
+analyze_image.py
+check_pixels.py
+find_all_light_pixels.py
+find_text_location.py
+redact_member_final.py
+redact_profile_info.py
+redact_table_info.py
+
+# Python virtual environment
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Test images
+*-test.png
