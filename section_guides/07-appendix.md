@@ -12,6 +12,8 @@ List all pods across all namespaces and their current status:
 kubectl get pods -A
 ```
 
+or use k9s if installed
+
 Use this to verify workloads are running or to identify pods in an error state.
 
 ### Check Services and Endpoints

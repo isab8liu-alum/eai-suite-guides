@@ -54,7 +54,7 @@ Set the resource allocation for your project:
 
 ------------------------------------------------------------------------
 
-### Step 3 — Attaching Storage
+### Step 3 — Attaching Storage & Setting Secrets
 
 Each project requires a storage configuration to download models and run workloads. During installation, a `minio-credentials-fetcher` secret and a default storage configuration are created automatically. You will assign these to your project now.
 
@@ -62,6 +62,12 @@ Each project requires a storage configuration to download models and run workloa
 2. Click **Add project secret** and select **Assign existing secret**
 3. Select **minio-credentials-fetcher** from the **Secret** drop-down menu
 4. Click **Assign secret**
+5. Click **Add project secret** again and select **Create new secret**
+6. Enter a secret name such as `hugging-face-token`
+7. Add a key/value pair (for example, key: `HF_TOKEN`, value: your Hugging Face access token)
+8. Click **Create secret**
+
+> **Why this is needed:** The Hugging Face token is required for accessing gated models and some finetuning workflows in AMD AI Workbench.
 
 ![Secrets tab showing Add project secret button and options](../images/03-resource-manager/06-secrets-tab-add-menu.png)
 
@@ -69,7 +75,7 @@ Each project requires a storage configuration to download models and run workloa
 
 ![Secrets tab confirming minio-credentials-fetcher assigned](../images/03-resource-manager/08-secret-assigned.png)
 
-> **Expected outcome:** The `minio-credentials-fetcher` secret appears in the project's secrets list.
+> **Expected outcome:** Both `minio-credentials-fetcher` and your Hugging Face token secret appear in the project's secrets list.
 
 > **Troubleshooting:** If `minio-credentials-fetcher` does not appear in the drop-down, the platform installation may not have completed successfully. See the [Troubleshooting](./06-5-troubleshooting.md) section.
 
