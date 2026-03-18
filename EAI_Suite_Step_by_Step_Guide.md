@@ -316,11 +316,21 @@ data.
 
 ### Typical Workflow
 
-1.  Add Hugging Face token
-2.  Upload dataset
-3.  Select base model
-4.  Configure training parameters
-5.  Launch finetuning job
+1.  Add Hugging Face token: see Resource Manager guide for adding it under Secrets section
+2.  Navigate to **Datasets** and click **Upload**
+
+![Upload a dataset for finetuning](images/04-workbench/uploading_dataset_finetuning.png)
+
+3.  Enter dataset details, upload the `.jsonl` file, and click **Upload**
+4.  Go to **Models** > **Custom Models**
+
+![Custom Models view in AI Workbench](images/04-workbench/workbench_custom_models_view.png)
+
+5.  Click **Fine-tune model** from the Custom Models view
+
+![Create fine-tuned model panel](images/04-workbench/finetune_model_menu.png)
+
+6.  Select base model and dataset, configure training parameters, then start training
 
 ------------------------------------------------------------------------
 

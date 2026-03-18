@@ -1,8 +1,9 @@
 # 3. AMD Workbench
 
-AMD AI Workbench is the end-user interface for deploying and interacting with AI models. It is accessed separately from the Resource Manager — navigate to:
+AMD AI Workbench is the end-user interface for deploying and interacting with AI models. It is accessed separately from the Resource Manager — navigate to the url exposed after installation:
 
-> `https://<!-- TODO: confirm AMD Workbench URL pattern, e.g., airmui.<your-ip>.nip.io or a separate subdomain -->`
+For a .nip.io domain (default if installation via Digital Ocean): https://kc.<master-node-ip-address>.nip.io
+For a registered domain: https://airmui.<your-domain>
 
 Log in with the same credentials used for the Resource Manager. Ensure you are working within the project you created in the previous section.
 
@@ -12,18 +13,26 @@ Log in with the same credentials used for the Resource Manager. Ensure you are w
 
 ## Finetuning
 
-<!-- TODO: This section requires content. The workflow below is an outline only.
-     Fill in step-by-step instructions with UI navigation for each item before the HOL. -->
 
 Finetuning allows you to adapt a base model to domain-specific data.
 
 ### Typical Workflow
 
 1. **Add Hugging Face token** — Required for accessing gated models and datasets
-2. **Upload dataset** — <!-- TODO: Describe where/how to upload a dataset in the UI -->
-3. **Select base model** — <!-- TODO: Describe model selection UI -->
-4. **Configure training parameters** — <!-- TODO: Describe key parameters and recommended values for this HOL -->
-5. **Launch finetuning job** — <!-- TODO: Describe how to submit and monitor the job -->
+![Model card with Deploy option in three-dot menu](../images/04-workbench/02-model-card-deploy-menu.png)
+
+2. **Navigate to Datasets and upload training data** — In **AI Workbench**, open **Datasets** from the left navigation and click **Upload**.
+
+![Upload a dataset for finetuning](../images/04-workbench/uploading_dataset_finetuning.png)
+
+3. **Create the dataset entry** — Enter a dataset name, choose the correct data type, optionally add a description, then upload your `.jsonl` file and click **Upload**.
+4. **Go to Custom Models** — Open **Models** and switch to the **Custom Models** tab.
+
+![Custom Models view in AI Workbench](../images/04-workbench/workbench_custom_models_view.png)
+
+5. **Start fine-tuning** — Click **Fine-tune model**, select the base model and uploaded dataset, configure training parameters, then click **Start training**.
+
+![Create fine-tuned model panel](../images/04-workbench/finetune_model_menu.png)
 
 <!-- SCREENSHOT: Finetuning section of the UI (once steps are documented) -->
 
