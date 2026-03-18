@@ -309,81 +309,134 @@ Users must be added to projects to be able to access the project and the computa
 
 # 3. AMD Workbench
 
+AMD AI Workbench is the end-user interface for deploying and interacting with AI models. It is accessed separately from the Resource Manager — navigate to the url exposed after installation:
+
+For a .nip.io domain (default if installation via Digital Ocean): https://kc.<master-node-ip-address>.nip.io
+For a registered domain: https://airmui.<your-domain>
+
+Log in with the same credentials used for the Resource Manager. Ensure you are working within the project you created in the previous section.
+
+<!-- SCREENSHOT: AMD AI Workbench landing page after login, showing the main navigation -->
+
+------------------------------------------------------------------------
+
 ## Finetuning
 
-Finetuning allows customers to adapt base models to domain-specific
-data.
+
+Finetuning allows you to adapt a base model to domain-specific data.
 
 ### Typical Workflow
 
-1.  Add Hugging Face token: see Resource Manager guide for adding it under Secrets section
-2.  Navigate to **Datasets** and click **Upload**
+1. **Add Hugging Face token** — Required for accessing gated models and datasets
+![Model card with Deploy option in three-dot menu](images/04-workbench/02-model-card-deploy-menu.png)
+
+2. **Navigate to Datasets and upload training data** — In **AI Workbench**, open **Datasets** from the left navigation and click **Upload**.
 
 ![Upload a dataset for finetuning](images/04-workbench/uploading_dataset_finetuning.png)
 
-3.  Enter dataset details, upload the `.jsonl` file, and click **Upload**
-4.  Go to **Models** > **Custom Models**
+3. **Create the dataset entry** — Enter a dataset name, choose the correct data type, optionally add a description, then upload your `.jsonl` file and click **Upload**.
+4. **Go to Custom Models** — Open **Models** and switch to the **Custom Models** tab.
 
 ![Custom Models view in AI Workbench](images/04-workbench/workbench_custom_models_view.png)
 
-5.  Click **Fine-tune model** from the Custom Models view
+5. **Start fine-tuning** — Click **Fine-tune model**, select the base model and uploaded dataset, configure training parameters, then click **Start training**.
 
 ![Create fine-tuned model panel](images/04-workbench/finetune_model_menu.png)
 
-6.  Select base model and dataset, configure training parameters, then start training
+<!-- SCREENSHOT: Finetuning section of the UI (once steps are documented) -->
 
 ------------------------------------------------------------------------
 
-## Deploy AIM
+## Deploy an AI Model (AIM)
+
+> **Note:** You are in the **AMD AI Workbench** interface for this section. Ensure you have selected the correct project before proceeding.
+
+![AI Workbench — AIM catalog](images/04-workbench/01-models-catalog.png)
 
 1. Navigate to the **Models** tab to access the AIM catalog
-2. Go to the model card and click the three-dot menu in the bottom-right corner
+2. Locate the model you want to deploy and click the **three-dot menu (⋮)** in the bottom-right corner of the model card
 3. Select **Deploy**
-4. Choose a configuration:
-   - **Default** — automatically selects the best metric for your model and hardware
-   - **Latency** — prioritize low end-to-end latency
-   - **Throughput** — prioritize sustained requests/second
-   - **Unoptimized deployment** — deploy to hardware the AIM is not specifically optimized for
-5. If the model is gated (indicated by a lock icon, e.g., Llama family), you will be prompted for a Hugging Face token. Either select a pre-existing token or add one directly.
-6. Click **Deploy** to start the workload. You will receive confirmation that the workload has started.
+
+![Model card with Deploy option in three-dot menu](images/04-workbench/02-model-card-deploy-menu.png)
+
+4. Configure the **Deployment Settings**:
+
+   - **Performance metric** — Select the optimization target from the dropdown:
+
+     | Option | When to use |
+     |--------|-------------|
+     | **Latency** | When minimizing response time per request is the priority |
+     | **Throughput** | When maximizing sustained requests/second is the priority |
+
+   - **Unoptimized deployment** — Toggle **Allow** only when deploying to hardware the AIM is not specifically optimized for. Leave this off for standard deployments.
+
+   <!-- TODO: Specify which performance metric to select for this HOL exercise -->
+
+<!-- SCREENSHOT: Deployment config panel showing Performance metric dropdown open with Latency and Throughput options -->
+
+![Deploy AIM panel with Performance metric dropdown](images/04-workbench/03-deploy-config-panel.png)
+
+![Performance metric dropdown showing Latency and Throughput options](images/04-workbench/04-deploy-performance-dropdown.png)
+
+5. If the model is gated (indicated by a lock icon — e.g., Llama family models), a **Hugging Face authentication** section appears in the panel. Either click **Select existing token** to reuse a previously stored token, or click **Add new token** and enter a name and token value directly.
+
+![Deploy AIM panel for a gated model showing Hugging Face authentication fields](images/04-workbench/05-hf-token-prompt.png)
+
+6. Click **Deploy**. A confirmation message will appear indicating the workload has started.
+
+<!-- SCREENSHOT: Deployment confirmation notification or toast message -->
+
+7. **Wait for the model to become ready.** Navigate to **Workloads** to monitor deployment status. The model is ready when its status shows **Running**.
+
+   > Deployment typically takes <!-- TODO: fill in approximate time, e.g., "3–5 minutes" --> depending on model size and cluster load.
+
+<!-- SCREENSHOT: Workloads list view showing the deployed model with "Running" status -->
 
 ------------------------------------------------------------------------
 
-## VSCode (vLLM Benchmarking)
+## VSCode Workspace (vLLM Benchmarking)
 
-### Launch VSCode
+This section demonstrates how to use the built-in Visual Studio Code workspace to benchmark a deployed model using the `vllm bench` tool.
 
-1.  Navigate to **Workspaces**
-2.  Click **View and deploy** (Visual Studio)
-3.  Onced deployed, click on the **Launch** button
+### Launch the VSCode Workspace
 
-### Example: Benchmarking
+1. Navigate to **Workspaces** in the left sidebar
+2. Click **View and deploy** next to the Visual Studio Code workspace entry
+3. Once deployed, click the **Launch** button to open VSCode in your browser
 
-**Note:** This is an example benchmarking script. Depending on the model and workload characteristics, adjustments may be required.
+<!-- SCREENSHOT: Workspaces page — showing the "View and deploy" and "Launch" buttons -->
+<!-- SCREENSHOT: VSCode workspace open in the browser -->
 
-Steps:
-1. Deploy the AIM to benchmark (see section above).
-2. Once deployed, find the endpoint:
-  - Go to the model card and click the three-dot menu in the bottom-right corner.
-  - Click **Connect**.
-  - Copy the **Internal URL**. Since the workspace runs inside the cluster, use the Internal URL. If accessing from outside the cluster (e.g. locally), use the **External URL** together with an API key.
-3. Open the Visual Studio Code workspace and run the commands below in the terminal.
+### Get the Model Endpoint
+
+Before running the benchmark, retrieve the internal endpoint of your deployed model:
+
+1. Navigate to the **Models** tab
+2. On the deployed model card, click the **three-dot menu (⋮)** and select **Connect**
+3. Copy the **Internal URL** — this is the endpoint used within the cluster
+
+   > If accessing from outside the cluster (e.g., from your local machine), use the **External URL** together with an API key instead.
+
+<!-- SCREENSHOT: Connect dialog showing Internal URL and External URL fields -->
+
+### Run the Benchmark
+
+Open a terminal in the VSCode workspace and run the following setup commands:
 
 ```bash
-python --version # Check Python
+python --version          # Verify Python is available
 
-python -m venv venv # Create Python virtual environment
+python -m venv venv       # Create a virtual environment
+source venv/bin/activate  # Activate it
 
-source venv/bin/activate # Activate Python virtual environment
-
-pip install vllm # Install vllm
+pip install vllm          # Install the vllm benchmarking tool
 ```
 
-Then run (feel free to create a bash script for easier customization):
+Then configure and run the benchmark. Replace the placeholder values with those for your deployment:
 
 ```bash
 NUM_PROMPTS=<number-of-prompts>
-CONC=$((NUM_PROMPTS * 10))
+CONC=$((NUM_PROMPTS * 10))   # Sets concurrency to 10x the prompt count — adjust as needed
 INPUT_LEN=<input-token-length>
 OUTPUT_LEN=<output-token-length>
 BASE_URL="<your-internal-url>"
@@ -404,61 +457,164 @@ vllm bench serve \
   --trust-remote-code
 ```
 
-### Understanding Output Metrics
+<!-- TODO: Provide recommended values for this HOL, e.g.:
+     NUM_PROMPTS=100, INPUT_LEN=512, OUTPUT_LEN=128, MODEL="<name of model deployed above>"
+     Optionally, provide this as a pre-written bash script participants can copy. -->
 
-| Metric     | Meaning                      |
-|------------|------------------------------|
-| Throughput | Tokens processed per second  |
-| TTFT       | Time to First Token          |
-| Latency    | Request processing delay     |
-| Tokens/sec | Generation speed             |
+<!-- SCREENSHOT: VSCode terminal showing benchmark output -->
+
+### Understanding Benchmark Output
+
+| Metric | Meaning |
+|--------|---------|
+| **Throughput** | Total tokens processed per second across all concurrent requests |
+| **TTFT** | Time to First Token — how quickly the model starts responding |
+| **Latency** | End-to-end time per request |
+| **Tokens/sec** | Per-request token generation rate |
 
 ------------------------------------------------------------------------
 
 ## ComfyUI
 
-ComfyUI enables: 
-- Visual AI workflow creation 
-- Image generation pipelines 
-- Model experimentation via UI
+ComfyUI provides a visual node-based interface for building and running AI pipelines, including image generation workflows.
+
+1. Navigate to **Workspaces** in AI Workbench and locate the **ComfyUI Text-to-Image** workspace.
+
+![Workspaces view showing ComfyUI Text-to-Image](images/04-workbench/workspaces_view.png)
+
+2. Click **View and deploy**, then allocate the appropriate number of GPUs based on workload demand.
+3. After deployment is ready, click **Launch**.
+4. In ComfyUI, select one of the available text-to-image templates.
+5. Enter a text prompt and run the workflow to generate images.
+
+<!-- SCREENSHOT: ComfyUI interface showing the node graph editor -->
+
+------------------------------------------------------------------------
+
+**Next:** Proceed to [Blueprints](./05-4-blueprints.md) to deploy a solution blueprint.
 
 ------------------------------------------------------------------------
 
 # 4. Blueprints
 
-Solution Blueprints are reference applications built with AIMs. Solution Blueprints offer an easy way to explore AIMs in the context of a complete microservice solution. For developers, Solution Blueprints act as starting points and example implementations, making it fast and easy to solve real-world needs with ROCm software.
+Solution Blueprints are reference applications built with AIMs (AI Models). They offer an easy way to explore AIMs in the context of a complete microservice solution. For developers, Solution Blueprints serve as starting points and example implementations, making it fast and easy to solve real-world problems with ROCm software.
 
-Documentation page can be found [here](https://enterprise-ai.docs.amd.com/en/latest/solution-blueprints/overview.html).
+Full documentation: [Solution Blueprints Overview](https://enterprise-ai.docs.amd.com/en/latest/solution-blueprints/overview.html)
 
-## Launching Blueprints Helm Charts
+------------------------------------------------------------------------
 
-Solution Blueprints are provided as Helm Charts. The recommended approach to deploy them is to pipe the output of helm template to `kubectl apply -f -`. We don’t recommend helm install, which by default uses a Secret to keep track of the related resources. Ensure you have access to the cluster trough the terminal. Access guide can be found [here](https://enterprise-ai.docs.amd.com/en/latest/resource-manager/workloads/accessing-the-cluster.html#constructing-the-kubeconfig-file).
+## Prerequisites for This Section
+
+Blueprints are deployed via **Helm**, a package manager for Kubernetes. Before proceeding:
+
+- **Helm** must be installed on your terminal environment. Verify with:
+
+  ```bash
+  helm version
+  ```
+
+- You must have access to the Kubernetes cluster via `kubectl`. If you have not set up cluster access yet, follow the [Accessing the Cluster guide](https://enterprise-ai.docs.amd.com/en/latest/resource-manager/workloads/accessing-the-cluster.html#constructing-the-kubeconfig-file) to obtain and configure your `kubeconfig` file before continuing.
+
+  Verify cluster access with:
+
+  ```bash
+  kubectl get nodes
+  ```
+
+  <!-- SCREENSHOT: Terminal showing successful `kubectl get nodes` output -->
+
+> **What is Helm?** Helm is a tool that packages Kubernetes application configurations into reusable "charts." Instead of writing and managing many individual Kubernetes YAML files, you deploy a chart with a single command. AMD Solution Blueprints are distributed as Helm charts via a container registry.
+
+------------------------------------------------------------------------
+
+## Deploying a Blueprint
+
+Solution Blueprints are provided as Helm charts. The recommended approach is to render the chart with `helm template` and pipe the output directly to `kubectl apply`. This avoids Helm managing release state, which simplifies cleanup. We don’t recommend helm install, which by default uses a Secret to keep track of the related resources. Ensure you have access to the cluster trough the terminal. Access guide can be found [here](https://enterprise-ai.docs.amd.com/en/latest/resource-manager/workloads/accessing-the-cluster.html#constructing-the-kubeconfig-file).
+
+
+Replace the placeholder values before running:
+
+- `name` — a unique name for this deployment (e.g., `my-deployment`)
+- `namespace` — the Kubernetes namespace for your project (e.g., `my-namespace`)
+- `chart` — the name of the blueprint chart to deploy
+
+| Folder | Chart Name |
+| --- | --- |
+| agentic-testing | aimsb-agentic-testing |
+| agentic-translation | aimsb-agentic-translation |
+| autogen-studio | aimsb-autogenstudio |
+| code-docs-builder | aimsb-codedocs |
+| continuedev-assistant | aimsb-continuedev-assistant |
+| document-summarization | aimsb-docsum |
+| fsi | aimsb-fsi |
+| llm-chat | aimsb-llm-chat |
+| llm-router | aimsb-llm-router |
+| pdf-to-podcast | aimsb-pdf-to-podcast |
+| report-generation-engine | aimsb-report-generation-engine |
+| talk-to-your-documents | aimsb-talk-to-your-documents |
+
+A full list of available charts can be found at:
+     https://enterprise-ai.docs.amd.com/en/latest/solution-blueprints/overview.html 
 
 ```bash
 name="my-deployment"
 namespace="my-namespace"
-chart="aimsb-my-chart"
+chart="aimsb-my-chart"   # TODO: Replace with the actual chart name for this HOL
+
 helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
   | kubectl apply -f - -n $namespace
 ```
 
-## Using an existing deployment or external LLM
+<!-- SCREENSHOT: Terminal showing the helm template | kubectl apply command and its output -->
 
-By default, any required AIMs are deployed by the helm chart. If you already have a compatible AIM deployed, you can use that instead, and reuse resources.
+After deploying, verify that the blueprint pods are running:
 
-To use an existing deployment or external model, set the corresponding `existingService` value to that endpoint. You should use the Kubernetes Service name, or if the service is in a different namespace, you can use the long form <SERVICENAME>.<NAMESPACE>.svc.cluster.local:<SERVICEPORT>. If needed, you can pass a whole URL.
+```bash
+kubectl get pods -n $namespace
+```
 
-Full example command:
+<!-- SCREENSHOT: Terminal showing kubectl get pods output with blueprint pods in "Running" state -->
+
+> **Expected outcome:** All pods for the blueprint show a `Running` status. This may take a few minutes as container images are pulled.
+
+------------------------------------------------------------------------
+
+## Reusing an Existing Model Deployment
+
+By default, the Helm chart deploys its own AI model instance. If you already have a compatible AIM deployed from the [Workbench section](./04-3-amd-workbench.md), you can reuse that deployment to save resources.
+
+To point the blueprint at an existing model, set the `existingService` value to the Kubernetes service name of your running AIM. Use the service name alone if it is in the same namespace, or the full DNS form `<SERVICENAME>.<NAMESPACE>.svc.cluster.local:<PORT>` if it is in a different namespace.
 
 ```bash
 name="my-deployment"
 namespace="my-namespace"
-chart="aimsb-my-chart"
-servicename="aim-llm-my-model-123456"
+chart="aimsb-my-chart"             # TODO: Replace with actual chart name
+servicename="aim-llm-my-model-123456"  # TODO: Replace with your deployed model's service name
+
 helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
   --set llm.existingService=$servicename \
   | kubectl apply -f - -n $namespace
 ```
+
+> **Finding your service name:** Run `kubectl get svc -n $namespace` and look for the service associated with your deployed model.
+
+------------------------------------------------------------------------
+## Undeploying a Blueprint
+
+Run the following in the terminal:
+
+```bash
+helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart | kubectl delete -f - -n $namespace
+```
+
+Alternatively, if you saved the manifest earlier, delete it directly:
+
+```bash
+helm template delete -f demo-blueprint.yaml -n $namespace
+```
+
+
+**Next:** Proceed to the [Troubleshooting](./06-5-troubleshooting.md) guide if you encounter any issues, or the [Appendix](./07-appendix.md) for reference commands and cleanup steps.
 
 ------------------------------------------------------------------------
 

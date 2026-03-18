@@ -167,11 +167,16 @@ vllm bench serve \
 
 ## ComfyUI
 
-<!-- TODO: This section requires content before the HOL.
-     ComfyUI is used for visual AI workflow creation, image generation, and model experimentation.
-     Document: how to access ComfyUI, how to load a workflow, and a simple example task. -->
-
 ComfyUI provides a visual node-based interface for building and running AI pipelines, including image generation workflows.
+
+1. Navigate to **Workspaces** in AI Workbench and locate the **ComfyUI Text-to-Image** workspace.
+
+![Workspaces view showing ComfyUI Text-to-Image](../images/04-workbench/workspaces_view.png)
+
+2. Click **View and deploy**, then allocate the appropriate number of GPUs based on workload demand.
+3. After deployment is ready, click **Launch**.
+4. In ComfyUI, select one of the available text-to-image templates.
+5. Enter a text prompt and run the workflow to generate images.
 
 <!-- SCREENSHOT: ComfyUI interface showing the node graph editor -->
 
