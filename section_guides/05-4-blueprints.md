@@ -32,7 +32,8 @@ Blueprints are deployed via **Helm**, a package manager for Kubernetes. Before p
 
 ## Deploying a Blueprint
 
-Solution Blueprints are provided as Helm charts. The recommended approach is to render the chart with `helm template` and pipe the output directly to `kubectl apply`. This avoids Helm managing release state, which simplifies cleanup.
+Solution Blueprints are provided as Helm charts. The recommended approach is to render the chart with `helm template` and pipe the output directly to `kubectl apply`. This avoids Helm managing release state, which simplifies cleanup. We don’t recommend helm install, which by default uses a Secret to keep track of the related resources. Ensure you have access to the cluster trough the terminal. Access guide can be found [here](https://enterprise-ai.docs.amd.com/en/latest/resource-manager/workloads/accessing-the-cluster.html#constructing-the-kubeconfig-file).
+
 
 Replace the placeholder values before running:
 
@@ -40,9 +41,23 @@ Replace the placeholder values before running:
 - `namespace` — the Kubernetes namespace for your project (e.g., `my-namespace`)
 - `chart` — the name of the blueprint chart to deploy
 
-<!-- TODO: Specify the blueprint chart name for this HOL exercise, e.g., "aimsb-rag-chatbot".
-     A full list of available charts can be found at:
-     https://enterprise-ai.docs.amd.com/en/latest/solution-blueprints/overview.html -->
+| Folder | Chart Name |
+| --- | --- |
+| agentic-testing | aimsb-agentic-testing |
+| agentic-translation | aimsb-agentic-translation |
+| autogen-studio | aimsb-autogenstudio |
+| code-docs-builder | aimsb-codedocs |
+| continuedev-assistant | aimsb-continuedev-assistant |
+| document-summarization | aimsb-docsum |
+| fsi | aimsb-fsi |
+| llm-chat | aimsb-llm-chat |
+| llm-router | aimsb-llm-router |
+| pdf-to-podcast | aimsb-pdf-to-podcast |
+| report-generation-engine | aimsb-report-generation-engine |
+| talk-to-your-documents | aimsb-talk-to-your-documents |
+
+A full list of available charts can be found at:
+     https://enterprise-ai.docs.amd.com/en/latest/solution-blueprints/overview.html 
 
 ```bash
 name="my-deployment"
