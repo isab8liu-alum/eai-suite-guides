@@ -362,7 +362,7 @@ Finetuning allows you to adapt a base model to domain-specific data.
 ### Typical Workflow
 
 1. **Add Hugging Face token** — Required for accessing gated models and datasets
-![Model card with Deploy option in three-dot menu](images/04-workbench/02-model-card-deploy-menu.png)
+![Model card with Deploy option in three-dot menu](images/04-workbench/model-catalog-name-rm.png)
 
 2. **Navigate to Datasets and upload training data** — In **AI Workbench**, open **Datasets** from the left navigation and click **Upload**.
 
@@ -385,13 +385,13 @@ Finetuning allows you to adapt a base model to domain-specific data.
 
 > **Note:** You are in the **AMD AI Workbench** interface for this section. Ensure you have selected the correct project before proceeding.
 
-![AI Workbench — AIM catalog](images/04-workbench/01-models-catalog.png)
+![AI Workbench — AIM catalog](images/04-workbench/model-catalog-name-rm.png)
 
 1. Navigate to the **Models** tab to access the AIM catalog
 2. Locate the model you want to deploy and click the **three-dot menu (⋮)** in the bottom-right corner of the model card
 3. Select **Deploy**
 
-![Model card with Deploy option in three-dot menu](images/04-workbench/02-model-card-deploy-menu.png)
+![Model card with Deploy option in three-dot menu](images/04-workbench/model-catalog-name-rm.png)
 
 4. Configure the **Deployment Settings**:
 
