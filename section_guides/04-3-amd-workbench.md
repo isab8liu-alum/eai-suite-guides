@@ -11,33 +11,6 @@ Log in with the same credentials used for the Resource Manager. Ensure you are w
 
 ------------------------------------------------------------------------
 
-## Finetuning
-
-
-Finetuning allows you to adapt a base model to domain-specific data.
-
-### Typical Workflow
-
-1. **Add Hugging Face token** — Required for accessing gated models and datasets
-![Model card with Deploy option in three-dot menu](../images/04-workbench/model-catalog-name-rm.png)
-
-2. **Navigate to Datasets and upload training data** — In **AI Workbench**, open **Datasets** from the left navigation and click **Upload**.
-
-![Upload a dataset for finetuning](../images/04-workbench/uploading_dataset_finetuning.png)
-
-3. **Create the dataset entry** — Enter a dataset name, choose the correct data type, optionally add a description, then upload your `.jsonl` file and click **Upload**.
-4. **Go to Custom Models** — Open **Models** and switch to the **Custom Models** tab.
-
-![Custom Models view in AI Workbench](../images/04-workbench/workbench_custom_models_view.png)
-
-5. **Start fine-tuning** — Click **Fine-tune model**, select the base model and uploaded dataset, configure training parameters, then click **Start training**.
-
-![Create fine-tuned model panel](../images/04-workbench/finetune_model_menu.png)
-
-<!-- SCREENSHOT: Finetuning section of the UI (once steps are documented) -->
-
-------------------------------------------------------------------------
-
 ## Deploy an AI Model (AIM)
 
 > **Note:** You are in the **AMD AI Workbench** interface for this section. Ensure you have selected the correct project before proceeding.
@@ -84,6 +57,33 @@ Finetuning allows you to adapt a base model to domain-specific data.
 <!-- SCREENSHOT: Workloads list view showing the deployed model with "Running" status -->
 
 ------------------------------------------------------------------------
+## Finetuning
+
+
+Finetuning allows you to adapt a base model to domain-specific data.
+
+### Typical Workflow
+
+1. **Add Hugging Face token** — Required for accessing gated models and datasets
+![Model card with Deploy option in three-dot menu](../images/04-workbench/model-catalog-name-rm.png)
+
+2. **Navigate to Datasets and upload training data** — In **AI Workbench**, open **Datasets** from the left navigation and click **Upload**.
+
+![Upload a dataset for finetuning](../images/04-workbench/uploading_dataset_finetuning.png)
+
+3. **Create the dataset entry** — Enter a dataset name, choose the correct data type, optionally add a description, then upload your `.jsonl` file and click **Upload**.
+4. **Go to Custom Models** — Open **Models** and switch to the **Custom Models** tab.
+
+![Custom Models view in AI Workbench](../images/04-workbench/workbench_custom_models_view.png)
+
+5. **Start fine-tuning** — Click **Fine-tune model**, select the base model and uploaded dataset, configure training parameters, then click **Start training**.
+
+![Create fine-tuned model panel](../images/04-workbench/finetune_model_menu.png)
+
+<!-- SCREENSHOT: Finetuning section of the UI (once steps are documented) -->
+
+------------------------------------------------------------------------
+
 
 ## VSCode Workspace (vLLM Benchmarking)
 
@@ -96,6 +96,7 @@ This section demonstrates how to use the built-in Visual Studio Code workspace t
 3. Once deployed, click the **Launch** button to open VSCode in your browser
 
 <!-- SCREENSHOT: Workspaces page — showing the "View and deploy" and "Launch" buttons -->
+![Workspaces view showing ComfyUI Text-to-Image](../images/04-workbench/workspaces_view.png)
 <!-- SCREENSHOT: VSCode workspace open in the browser -->
 
 ### Get the Model Endpoint
