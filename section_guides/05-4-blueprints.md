@@ -92,6 +92,8 @@ After deploying, verify that the blueprint pods are running:
 kubectl get pods -n $namespace
 ```
 
+![Blueprint deployment showing pods running](../images/blueprints/blueprint-wsl-deployment.png)
+
 <!-- SCREENSHOT: Terminal showing kubectl get pods output with blueprint pods in "Running" state -->
 
 > **Expected outcome:** All pods for the blueprint show a `Running` status. This may take a few minutes as container images are pulled.
