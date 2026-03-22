@@ -18,6 +18,22 @@ Blueprints are deployed via **Helm**, a package manager for Kubernetes. Before p
 
 - You must have access to the Kubernetes cluster via `kubectl`. If you have not set up cluster access yet, follow the [Accessing the Cluster guide](https://enterprise-ai.docs.amd.com/en/latest/resource-manager/workloads/accessing-the-cluster.html#constructing-the-kubeconfig-file) to obtain and configure your `kubeconfig` file before continuing.
 
+  If you are downloading the write-enabled kubeconfig from the Resource Manager GUI, grab it from **Resource Manager > Clusters > Actions > Download kubeconfig (write)**, then paste it into your local config file:
+
+  ![Resource Manager cluster view showing the Download kubeconfig (write) action](../images/03-resource-manager/cluster_view_view_config.png)
+
+  ```bash
+  cd ~/.kube
+  vim demo_write.yaml
+  # Manually paste the downloaded write-access kubeconfig YAML into demo_write.yaml
+  export PS1="demo-user:$ "
+  cd ~/.kube
+  vim demo_write.yaml
+  export KUBECONFIG=~/.kube/demo_write.yaml
+  k9s
+  ```
+
+
   Verify cluster access with:
 
   ```bash
