@@ -102,6 +102,8 @@ kubectl get pods -n $namespace
 
 ## Reusing an Existing Model Deployment
 
+![Talk to your documents blueprint interface](../images/blueprints/talk-to-ur-doc.png)
+
 By default, the Helm chart deploys its own AI model instance. If you already have a compatible AIM deployed from the [Workbench section](./04-3-amd-workbench.md), you can reuse that deployment to save resources.
 
 To point the blueprint at an existing model, set the `existingService` value to the Kubernetes service name of your running AIM. Use the service name alone if it is in the same namespace, or the full DNS form `<SERVICENAME>.<NAMESPACE>.svc.cluster.local:<PORT>` if it is in a different namespace.
