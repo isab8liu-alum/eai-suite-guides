@@ -165,9 +165,15 @@ helm template delete -f demo-blueprint.yaml -n $namespace
 ## HOL connecting to a cluster
 
 Launch the VScode workspace. Inside the VScode terminal, run the following commands.
-
+```bash
 curl -sS https://webinstall.dev/k9s | bash
-
 source ~/.config/envman/PATH.env
-
 k9s
+mkdir -p ~/.kube
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+chmod +x kubectl
+mv kubectl /usr/local/bin/
+kubectl version --client
+```
+Create a new file in the GUI and paste in the cluster config text. Save as ~/.kube/demo_write.yaml
+
