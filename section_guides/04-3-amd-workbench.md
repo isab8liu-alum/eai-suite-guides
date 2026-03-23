@@ -94,11 +94,14 @@ This section demonstrates how to use the built-in Visual Studio Code workspace t
 ### Launch the VSCode Workspace
 
 1. Navigate to **Workspaces** in the left sidebar
-2. Click **View and deploy** next to the Visual Studio Code workspace entry
+2. Click **View and deploy** next to the Visual Studio Code workspace entry. Click the **Customize Resource Allocation** and set the allocated GPUs=0, because we won't need GPUs for the workspace deployment.
+
+![Workspaces view showing Custom Resource Allocation](../images/04-workbench/workspace-deploy-custom-resource-allocation.png)
+
 3. Once deployed, click the **Launch** button to open VSCode in your browser
 
 <!-- SCREENSHOT: Workspaces page — showing the "View and deploy" and "Launch" buttons -->
-![Workspaces view showing ComfyUI Text-to-Image](../images/04-workbench/workspaces_view.png)
+![Workspaces view showing VSCode](../images/04-workbench/workspaces_view.png)
 <!-- SCREENSHOT: VSCode workspace open in the browser -->
 
 ### Get the Model Endpoint
