@@ -76,7 +76,7 @@ A full list of available charts can be found at:
 ```bash
 name="my-deployment"
 namespace="my-namespace"
-chart="aimsb-talk-to-your-documents"   # TODO: Replace with other chart names corresponding to each blueprint
+chart="aimsb-talk-to-your-documents"   # TODO: Replace with other chart names corresponding to each blueprint aimsb-docsum
 
 helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
   | kubectl apply -f - -n $namespace
@@ -99,10 +99,11 @@ Run `k9s` to verify that the blueprint pods have started correctly. Then port-fo
 Each blueprint may use different ports. Check the respective `DEPLOYMENT.md` on GitHub for port details.
 
 ```bash
-kubectl port-forward services/$name-$chart 7860:80 -n $namespace
+kubectl port-forward services/aimsb-docsum-$name-ui 5173:5173 -n $namespace
+# kubectl port-forward services/$name-$chart 7860:80 -n $namespace
 ```
 
-![Talk to your documents blueprint interface](../images/blueprints/talk-to-ur-doc.png)
+![Document summarization blueprint interface](../images/blueprints/docsum-ui.png)
 
 
 ------------------------------------------------------------------------
@@ -122,8 +123,8 @@ Look for the service associated with your deployed model (typically starts with 
 ```bash
 name="my-deployment"
 namespace="my-namespace"
-chart="aimsb-talk-to-your-documents" # TODO: Replace with chart name according to blueprint
-servicename="aim-llm-my-model-123456"  # TODO: Replace with your deployed model's service name
+chart="aimsb-docsum" # TODO: Replace with chart name according to blueprint aimsb-docsum
+servicename="aim-llm-my-model-123456"  # TODO: Replace with your deployed model's service name, such as amdenterpriseai-aim-meta-llama-llama-3-3-70b-inst-0.10.0-39e309-e75704b5
 
 helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
   --set llm.existingService=$servicename \
@@ -135,10 +136,11 @@ Run `k9s` to verify that the blueprint pods have started correctly. Then port-fo
 Each blueprint may use different ports. Check the respective `DEPLOYMENT.md` on GitHub for port details.
 
 ```bash
-kubectl port-forward services/$name-$chart 7860:80 -n $namespace
+kubectl port-forward services/aimsb-docsum-$name-ui 5173:5173 -n $namespace
+#kubectl port-forward services/$name-$chart 7860:80 -n $namespace
 ```
 
-![Talk to your documents blueprint interface](../images/blueprints/talk-to-ur-doc.png)
+![Document summarization blueprint interface](../images/blueprints/docsum-ui.png)
 
 
 
@@ -174,6 +176,7 @@ curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stabl
 chmod +x kubectl
 mv kubectl /usr/local/bin/
 kubectl version --client
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 ```
 Create a new file in the GUI and paste in the cluster config text. Save as ~/.kube/demo_write.yaml
 
