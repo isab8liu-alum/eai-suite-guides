@@ -10,29 +10,27 @@ Full documentation: [Solution Blueprints Overview](https://enterprise-ai.docs.am
 
 Blueprints are deployed via **Helm**, a package manager for Kubernetes. Before proceeding:
 
-- **Helm** must be installed on your terminal environment. Verify with:
+**Helm** must be installed on your terminal environment. Verify with:
 
   ```bash
   helm version
   ```
 
-- You must have access to the Kubernetes cluster via `kubectl`. If you have not set up cluster access yet, follow the [Accessing the Cluster guide](https://enterprise-ai.docs.amd.com/en/latest/resource-manager/workloads/accessing-the-cluster.html#constructing-the-kubeconfig-file) to obtain and configure your `kubeconfig` file before continuing.
+You must have access to the Kubernetes cluster via `kubectl`. If you have not set up cluster access yet, follow the [Accessing the Cluster guide](https://enterprise-ai.docs.amd.com/en/latest/resource-manager/workloads/accessing-the-cluster.html#constructing-the-kubeconfig-file) to obtain and configure your `kubeconfig` file before continuing.
 
-  If you are downloading the write-enabled kubeconfig from the Resource Manager GUI, grab it from **Resource Manager > Clusters > Actions > Download kubeconfig (write)**, then paste it into your local config file:
+  If you are downloading the write-enabled kubeconfig from the Resource Manager GUI, grab it from **Resource Manager → Clusters → View Config**, then paste it into your local config file:
+
 
   ![Resource Manager cluster view showing the Download kubeconfig (write) action](../images/03-resource-manager/cluster_view_view_config.png)
 
   ```bash
   cd ~/.kube
-  vim demo_write.yaml
+  nano jam_demo_write.yaml
   # Manually paste the downloaded write-access kubeconfig YAML into demo_write.yaml
-  export PS1="demo-user:$ "
-  cd ~/.kube
-  vim demo_write.yaml
-  export KUBECONFIG=~/.kube/demo_write.yaml
+  export KUBECONFIG=~/.kube/jam_demo_write.yaml
   k9s
   ```
-
+ The k9s view should show a connected cluster. Type :q to exit.
 
   Verify cluster access with:
 
@@ -78,7 +76,7 @@ A full list of available charts can be found at:
 ```bash
 name="my-deployment"
 namespace="my-namespace"
-chart="aimsb-my-chart"   # TODO: Replace with the actual chart name for this HOL
+chart="aimsb-talk-to-your-documents"   # TODO: Replace with other chart names corresponding to each blueprint
 
 helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
   | kubectl apply -f - -n $namespace
@@ -92,26 +90,39 @@ After deploying, verify that the blueprint pods are running:
 kubectl get pods -n $namespace
 ```
 
-![Blueprint deployment showing pods running](../images/blueprints/blueprint-wsl-deployment.png)
-
 <!-- SCREENSHOT: Terminal showing kubectl get pods output with blueprint pods in "Running" state -->
 
 > **Expected outcome:** All pods for the blueprint show a `Running` status. This may take a few minutes as container images are pulled.
+
+Run `k9s` to verify that the blueprint pods have started correctly. Then port-forward and access the blueprint at http://localhost:7860.
+
+Each blueprint may use different ports. Check the respective `DEPLOYMENT.md` on GitHub for port details.
+
+```bash
+kubectl port-forward services/$name-$chart 7860:80 -n $namespace
+```
+
+![Talk to your documents blueprint interface](../images/blueprints/talk-to-ur-doc.png)
+
 
 ------------------------------------------------------------------------
 
 ## Reusing an Existing Model Deployment
 
-![Talk to your documents blueprint interface](../images/blueprints/talk-to-ur-doc.png)
-
 By default, the Helm chart deploys its own AI model instance. If you already have a compatible AIM deployed from the [Workbench section](./04-3-amd-workbench.md), you can reuse that deployment to save resources.
 
 To point the blueprint at an existing model, set the `existingService` value to the Kubernetes service name of your running AIM. Use the service name alone if it is in the same namespace, or the full DNS form `<SERVICENAME>.<NAMESPACE>.svc.cluster.local:<PORT>` if it is in a different namespace.
 
+To find your service name, run:
+```bash
+kubectl get svc -n $namespace
+```
+Look for the service associated with your deployed model (typically starts with "aim-llm-") TODO change this grab the name from the GUI
+
 ```bash
 name="my-deployment"
 namespace="my-namespace"
-chart="aimsb-my-chart"             # TODO: Replace with actual chart name
+chart="aimsb-talk-to-your-documents" # TODO: Replace with chart name according to blueprint
 servicename="aim-llm-my-model-123456"  # TODO: Replace with your deployed model's service name
 
 helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
@@ -119,7 +130,17 @@ helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
   | kubectl apply -f - -n $namespace
 ```
 
-> **Finding your service name:** Run `kubectl get svc -n $namespace` and look for the service associated with your deployed model.
+Run `k9s` to verify that the blueprint pods have started correctly. Then port-forward and access the blueprint at http://localhost:7860.
+
+Each blueprint may use different ports. Check the respective `DEPLOYMENT.md` on GitHub for port details.
+
+```bash
+kubectl port-forward services/$name-$chart 7860:80 -n $namespace
+```
+
+![Talk to your documents blueprint interface](../images/blueprints/talk-to-ur-doc.png)
+
+
 
 ------------------------------------------------------------------------
 ## Undeploying a Blueprint
@@ -138,3 +159,15 @@ helm template delete -f demo-blueprint.yaml -n $namespace
 
 
 **Next:** Proceed to the [Troubleshooting](./06-5-troubleshooting.md) guide if you encounter any issues, or the [Appendix](./07-appendix.md) for reference commands and cleanup steps.
+
+
+------------------------------------------------------------------------
+## HOL connecting to a cluster
+
+Launch the VScode workspace. Inside the VScode terminal, run the following commands.
+
+curl -sS https://webinstall.dev/k9s | bash
+
+source ~/.config/envman/PATH.env
+
+k9s
