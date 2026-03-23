@@ -69,6 +69,8 @@ Finetuning allows you to adapt a base model to domain-specific data.
 
 2. **Navigate to Datasets and upload training data** — In **AI Workbench**, open **Datasets** from the left navigation and click **Upload**.
 
+For this lab, please use dataset here: https://github.com/isab8liu-alum/eai-suite-guides/blob/main/dataset/argilla-1.jsonl
+
 ![Upload a dataset for finetuning](../images/04-workbench/uploading_dataset_finetuning.png)
 
 3. **Create the dataset entry** — Enter a dataset name, choose the correct data type, optionally add a description, then upload your `.jsonl` file and click **Upload**.
