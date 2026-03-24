@@ -118,27 +118,18 @@ Before running the benchmark, retrieve the internal endpoint of your deployed mo
 
 ### Run the Benchmark
 
-Open a terminal in the VSCode workspace and run the following setup commands:
+Create a new bash script file to configure and run the benchmark, and save as "bench_serve.sh". Replace the placeholder values with those for your deployment:
+
+![Benchmark serve script in VSCode terminal](../images/04-workbench/bench_serve.png)
 
 ```bash
-python --version          # Verify Python is available
-
-python -m venv venv       # Create a virtual environment
-source venv/bin/activate  # Activate it
-
-pip install vllm          # Install the vllm benchmarking tool
-```
-
-Then configure and run the benchmark. Replace the placeholder values with those for your deployment:
-
-```bash
-NUM_PROMPTS=<number-of-prompts>
+NUM_PROMPTS= 20 #<number-of-prompts>
 CONC=$((NUM_PROMPTS * 10))   # Sets concurrency to 10x the prompt count — adjust as needed
-INPUT_LEN=<input-token-length>
-OUTPUT_LEN=<output-token-length>
+INPUT_LEN=1024 #<input-token-length> #
+OUTPUT_LEN=1024 #<output-token-length>
 BASE_URL="<your-internal-url>"
 ENDPOINT="/v1/chat/completions"
-MODEL="<your-model-name>"
+MODEL="openai/gpt-oss-120b" 
 
 vllm bench serve \
   --ignore-eos \
@@ -153,12 +144,51 @@ vllm bench serve \
   --max-concurrency ${CONC} \
   --trust-remote-code
 ```
+for example, it would look like:
 
+```bash
+NUM_PROMPTS=20
+CONC=$((NUM_PROMPTS * 10))   # Sets concurrency to 10x the prompt count — adjust as needed
+INPUT_LEN=1024
+OUTPUT_LEN=1024
+BASE_URL="http://mw-f0709683-predictor.demo.svc.cluster.local"
+ENDPOINT="/v1/chat/completions"
+MODEL="openai/gpt-oss-120b"
+
+vllm bench serve \
+  --ignore-eos \
+  --backend openai-chat \
+  --base-url "${BASE_URL}" \
+  --endpoint "${ENDPOINT}" \
+  --model "${MODEL}" \
+  --dataset-name random \
+  --random-input-len ${INPUT_LEN} \
+  --random-output-len ${OUTPUT_LEN} \
+  --num-prompts ${NUM_PROMPTS} \
+  --max-concurrency ${CONC} \
+  --trust-remote-code
+  ```
 <!-- TODO: Provide recommended values for this HOL, e.g.:
      NUM_PROMPTS=100, INPUT_LEN=512, OUTPUT_LEN=128, MODEL="<name of model deployed above>"
      Optionally, provide this as a pre-written bash script participants can copy. -->
 
 <!-- SCREENSHOT: VSCode terminal showing benchmark output -->
+
+Open a terminal in the VSCode workspace and run the following setup commands:
+
+```bash
+python --version          # Verify Python is available
+
+python -m venv venv       # Create a virtual environment
+source venv/bin/activate  # Activate it
+
+pip install vllm          # Install the vllm benchmarking tool
+
+chmod +x /workload/bench_serve.sh
+cd /workload
+ ./bench_serve.sh 
+```
+
 
 ### Understanding Benchmark Output
 
