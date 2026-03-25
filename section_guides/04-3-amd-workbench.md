@@ -130,7 +130,7 @@ INPUT_LEN=1024 #<input-token-length> #
 OUTPUT_LEN=1024 #<output-token-length>
 BASE_URL="<your-internal-url>"
 ENDPOINT="/v1/chat/completions"
-MODEL="openai/gpt-oss-12b" #USE A NON GATED MODEL TO AVOID HF TOKEN ISSUES
+MODEL="openai/gpt-oss-12b" #USE A NON GATED MODEL TO AVOID Hugging face TOKEN ISSUES
 
 vllm bench serve \
   --ignore-eos \
