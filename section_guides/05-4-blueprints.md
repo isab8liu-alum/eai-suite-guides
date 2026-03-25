@@ -6,23 +6,6 @@ Full documentation: [Solution Blueprints Overview](https://enterprise-ai.docs.am
 
 ------------------------------------------------------------------------
 
-
-## HOL connecting to a cluster
-
-Launch the VScode workspace. Inside the VScode terminal, run the following commands.
-```bash
-curl -sS https://webinstall.dev/k9s | bash
-source ~/.config/envman/PATH.env
-k9s
-mkdir -p ~/.kube
-curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-chmod +x kubectl
-mv kubectl /usr/local/bin/
-kubectl version --client
-curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-```
-Create a new file in the GUI and paste in the cluster config text. Save as ~/.kube/demo_write.yaml
-
 ------------------------------------------------------------------------
 ## Prerequisites for This Section
 
@@ -180,5 +163,22 @@ helm template delete -f demo-blueprint.yaml -n $namespace
 
 **Next:** Proceed to the [Troubleshooting](./06-5-troubleshooting.md) guide if you encounter any issues, or the [Appendix](./07-appendix.md) for reference commands and cleanup steps.
 
+
+------------------------------------------------------------------------
+## HOL connecting to a cluster (pre-req steps for TechJam HOL)
+
+Launch the VScode workspace. Inside the VScode terminal, run the following commands.
+```bash
+curl -sS https://webinstall.dev/k9s | bash
+source ~/.config/envman/PATH.env
+k9s
+mkdir -p ~/.kube
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+chmod +x kubectl
+mv kubectl /usr/local/bin/
+kubectl version --client
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+```
+Create a new file in the GUI and paste in the cluster config text. Save as ~/.kube/demo_write.yaml
 
 

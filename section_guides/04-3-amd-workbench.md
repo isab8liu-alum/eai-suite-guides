@@ -90,6 +90,7 @@ For this lab, please use dataset here: https://github.com/isab8liu-alum/eai-suit
 ## VSCode Workspace (vLLM Benchmarking)
 
 This section demonstrates how to use the built-in Visual Studio Code workspace to benchmark a deployed model using the `vllm bench` tool.
+Prereq: minio credentials must be added to project secrets.
 
 ### Launch the VSCode Workspace
 
@@ -129,7 +130,7 @@ INPUT_LEN=1024 #<input-token-length> #
 OUTPUT_LEN=1024 #<output-token-length>
 BASE_URL="<your-internal-url>"
 ENDPOINT="/v1/chat/completions"
-MODEL="openai/gpt-oss-120b" 
+MODEL="openai/gpt-oss-12b" #USE A NON GATED MODEL TO AVOID HF TOKEN ISSUES
 
 vllm bench serve \
   --ignore-eos \
