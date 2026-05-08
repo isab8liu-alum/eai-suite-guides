@@ -151,7 +151,8 @@ kubectl port-forward services/aimsb-docsum-$name-ui 5173:5173 -n $namespace
 Run the following in the terminal:
 
 ```bash
-helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart | kubectl delete -f - -n $namespace
+helm template "$name" "oci://registry-1.docker.io/amdenterpriseai/$chart" \
+  | kubectl delete -n "$namespace" -f -
 ```
 
 Alternatively, if you saved the manifest earlier, delete it directly:
