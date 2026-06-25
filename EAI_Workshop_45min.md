@@ -9,12 +9,12 @@
 
 ## What You Will Build Today
 
-In this workshop you will experience the AMD Enterprise AI Suite end-to-end — from deploying your first AI model to launching a complete AI-powered financial intelligence application.
+In this workshop you will experience the AMD Enterprise AI Suite end-to-end — from deploying your first AI model to launching a complete AI-powered medical imaging application.
 
 You will:
 1. **Deploy a live AI model** through the AMD AI Workbench — no code required
 2. **Observe real-time inference metrics** and chat directly with your running model
-3. **Deploy a complete financial AI application** using a Solution Blueprint in a single command
+3. **Deploy a complete medical imaging AI application** using a Solution Blueprint in a single command
 4. **Connect the Blueprint to your model** — seeing how the platform's components snap together
 5. **Customize the application** to make it your own
 
@@ -125,13 +125,13 @@ From the model details page, click **Chat** to open a direct conversation interf
 
 ---
 
-# Part 2: Solution Blueprints — Deploy and Customize a Financial AI Application (20 minutes)
+# Part 2: Solution Blueprints — Deploy and Customize a Medical Imaging AI Application (20 minutes)
 
 ## Why Solution Blueprints?
 
 Building an AI application from scratch — even with a model already running — still requires writing a UI, a backend, prompt engineering, API wiring, and deployment code. For enterprise teams evaluating use cases, this delay kills momentum.
 
-**Solution Blueprints** eliminate that gap. Each Blueprint is a complete, production-ready AI application distributed as a single deployable package. In this section you will deploy the **Financial Stock Intelligence Blueprint** — a full application for analyzing stocks, earnings, and financial documents using AI.
+**Solution Blueprints** eliminate that gap. Each Blueprint is a complete, production-ready AI application distributed as a single deployable package. In this section you will deploy the **MRI Documentation Blueprint** — a full application for AI-assisted medical imaging analysis and report generation.
 
 ---
 
@@ -201,12 +201,13 @@ For a live visual view of the cluster, run `k9s`. Press `:q` to exit.
 
 ---
 
-## Step 2C: Deploy the Financial Stock Intelligence Blueprint
+## Step 2C: Deploy the MRI Documentation Blueprint
 
-The **FSI Blueprint** (`aimsb-fsi`) is a complete financial AI application. It provides:
-- Natural language queries over stock data, earnings reports, and financial filings
-- AI-generated summaries of market movements and company performance
-- A ready-to-use web interface for analysts and portfolio managers
+The **MRI Documentation Blueprint** (`aimsb-mri-docs`) is a complete medical imaging AI application. It provides:
+- AI-assisted analysis and summarization of MRI scan reports
+- Natural language querying over medical imaging documentation
+- Automated report generation for radiologists and clinical teams
+- A ready-to-use web interface for healthcare and imaging workflows
 
 ### Set Your Variables
 
@@ -215,7 +216,7 @@ Replace the placeholder values with your own. Your facilitator will confirm your
 ```bash
 name="my-deployment"       # A unique label (use your first name or username)
 namespace="my-namespace"   # Your assigned Kubernetes namespace
-chart="aimsb-fsi"          # The Financial Stock Intelligence Blueprint
+chart="aimsb-mri-docs"     # The MRI Documentation Blueprint
 ```
 
 ### Deploy
@@ -241,19 +242,19 @@ You can also run `k9s` and navigate to your namespace for a live view.
 
 ![Blueprint deployment in progress](images/blueprints/blueprint-wsl-deployment.png)
 
-### Access the FSI Application
+### Access the MRI Documentation Application
 
 Once all pods are Running, open a port-forward to view the application:
 
 ```bash
-kubectl port-forward services/aimsb-fsi-$name-ui 7860:7860 -n $namespace
+kubectl port-forward services/aimsb-mri-docs-$name-ui 7860:7860 -n $namespace
 ```
 
 Open your browser to **http://localhost:7860**
 
-You should see the Financial Stock Intelligence interface. Try asking it a question about a stock or financial topic.
+You should see the MRI Documentation interface. Try uploading a sample report or asking it a question about an imaging study.
 
-> **Note:** Each Blueprint uses a different port. If the above port-forward does not work, check the FSI Blueprint's `DEPLOYMENT.md` on GitHub for the correct service name and port.
+> **Note:** Each Blueprint uses a different port. If the above port-forward does not work, check the MRI Documentation Blueprint's `DEPLOYMENT.md` on GitHub for the correct service name and port.
 
 ---
 
@@ -288,22 +289,34 @@ helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
   | kubectl apply -f - -n $namespace
 ```
 
-Wait for pods to restart (`kubectl get pods -n $namespace`), then refresh your browser at **http://localhost:7860**. The FSI application is now powered by your model from Part 1.
+Wait for pods to restart (`kubectl get pods -n $namespace`), then refresh your browser at **http://localhost:7860**. The MRI Documentation application is now powered by your model from Part 1.
 
 ---
 
 ### Ideas for Customizing the Blueprint
 
-Blueprints are open-source starting points — here are four quick wins you can explore after the workshop:
+Blueprints are open-source starting points — here are some quick wins you can explore after the workshop:
 
-**1. Swap to a Different Model**  
-Change the `llm.existingService` value to point at any other deployed AIM. Try a larger model for better accuracy, or a smaller one for lower latency. No application code changes needed.
+**1. Swap to a Different Image Segmentation Model**  
+The MRI Documentation Blueprint can be configured to use a specialized image segmentation AIM instead of the default language model. Image segmentation models identify and label distinct regions within an MRI scan — for example, detecting tumor boundaries, organ contours, or tissue types.
 
-**2. Change the System Prompt**  
-Each Blueprint exposes prompt configuration. Edit the system prompt to change the AI's persona, restrict it to specific topics (e.g., "only answer questions about our portfolio"), or adjust the tone from analyst-facing to executive-facing.
+To swap in a segmentation model, deploy a segmentation AIM from the Workbench catalog (look for models tagged `vision` or `segmentation`, such as a SAM or MedSAM variant), then update the Blueprint to use it:
 
-**3. Add Your Own Data Sources**  
-The FSI Blueprint can be extended with your internal financial data — proprietary research, internal filings, or real-time price feeds. Connect a retrieval layer to ground the AI's responses in your specific data.
+```bash
+segmentation_service="aim-segmentation-<model-id>"   # your deployed segmentation AIM
+
+helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
+  --set segmentation.existingService=$segmentation_service \
+  | kubectl apply -f - -n $namespace
+```
+
+With a segmentation model connected, the application can highlight anatomical structures directly on the scan images in addition to generating text reports.
+
+**2. Swap to a Different Language Model**  
+Change the `llm.existingService` value to point at any other deployed AIM. Try a larger model for more detailed clinical summaries, or a fine-tuned medical language model (e.g., a BioMedLM variant) for domain-specific accuracy.
+
+**3. Change the System Prompt**  
+Each Blueprint exposes prompt configuration. Edit the system prompt to adapt the AI's output style — for example, switching from radiologist-facing technical language to patient-friendly plain-English summaries, or restricting responses to a specific imaging modality (MRI, CT, X-ray).
 
 **4. Deploy a Different Blueprint for Your Use Case**  
 The same workflow works for any Blueprint:
@@ -313,7 +326,7 @@ The same workflow works for any Blueprint:
 | Document Summarization | `aimsb-docsum` | Summarizing reports and contracts |
 | Talk to Your Documents | `aimsb-talk-to-your-documents` | Internal knowledge base Q&A |
 | LLM Chat | `aimsb-llm-chat` | Simple chat interface |
-| Agentic Translation | `aimsb-agentic-translation` | Multi-language content |
+| Financial Stock Intelligence | `aimsb-fsi` | Financial analysis and market Q&A |
 | Report Generation | `aimsb-report-generation-engine` | Automated report creation |
 
 Change the `chart` variable and re-run the deploy command. You can have multiple Blueprints all pointing to the same shared AIM.
@@ -331,7 +344,7 @@ In AMD AI Workbench:
 1. Click **Datasets** in the left sidebar
 2. Click **Upload**
 3. Use the sample dataset provided by your facilitator:  
-   `https://github.com/isab8liu-alum/eai-suite-guides/blob/main/dataset/argilla-1.jsonl`
+   `https://github.com/isab8liu-alum/eai-suite-guides/blob/main/dataset/sft-demo-data.jsonl`
 
 ![Dataset upload interface](images/04-workbench/uploading_dataset_finetuning.png)
 
@@ -369,7 +382,7 @@ In 45 minutes you:
 
 - **Deployed a live AI model** through the Workbench UI — no infrastructure expertise needed
 - **Observed real-time SLO metrics** for a production-grade model deployment
-- **Deployed the Financial Stock Intelligence Blueprint** with a single Helm command
+- **Deployed the MRI Documentation Blueprint** with a single Helm command
 - **Connected the Blueprint to your model** — demonstrating resource sharing across applications
 - **Explored customization paths** for adapting Blueprints to real enterprise use cases
 - **Started a fine-tuning job** on custom data (bonus)
@@ -380,7 +393,7 @@ In 45 minutes you:
 # Set variables
 name="my-deployment"
 namespace="my-namespace"
-chart="aimsb-fsi"
+chart="aimsb-mri-docs"
 servicename="aim-llm-<your-model-service>"
 
 # Deploy a Blueprint (with its own model)
@@ -395,8 +408,8 @@ helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
 # Check pod status
 kubectl get pods -n $namespace
 
-# Port-forward to access the FSI Blueprint
-kubectl port-forward services/aimsb-fsi-$name-ui 7860:7860 -n $namespace
+# Port-forward to access the MRI Documentation Blueprint
+kubectl port-forward services/aimsb-mri-docs-$name-ui 7860:7860 -n $namespace
 
 # List services in your namespace
 kubectl get svc -n $namespace
