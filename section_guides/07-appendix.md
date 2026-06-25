@@ -58,7 +58,7 @@ kubectl get namespaces
 | **AIM** | AI Model — a packaged, optimized inference model available in the AMD AI Workbench catalog |
 | **Blueprint** | A reference solution application built on one or more AIMs, distributed as a Helm chart |
 | **Cluster Bloom** | The installation tool that sets up the Kubernetes cluster and deploys the EAI Suite |
-| **EAI Suite** | AMD Enterprise AI Suite — the full platform including Resource Manager, AI Workbench, and supporting services |
+| **EAI Suite** | AMD Enterprise AI Software Stack — the full platform including Resource Manager, AI Workbench, and supporting services |
 | **Helm** | A package manager for Kubernetes that deploys applications defined in reusable "charts" |
 | **Keycloak** | The identity and access management service used by EAI Suite for authentication |
 | **kubectl** | The Kubernetes command-line tool used to interact with the cluster |

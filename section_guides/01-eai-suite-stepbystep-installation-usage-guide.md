@@ -7,7 +7,7 @@
 
 ## Overview
 
-This guide walks participants through configuring and using the **AMD Enterprise AI Suite** on a pre-provisioned environment. The environment has already been installed — you will begin directly with project setup in the AMD Resource Manager.
+This guide walks participants through configuring and using the **AMD Enterprise AI Software Stack** on a pre-provisioned environment. The environment has already been installed — you will begin directly with project setup in the AMD Resource Manager.
 
 **Estimated Time:** 90 minutes
 
