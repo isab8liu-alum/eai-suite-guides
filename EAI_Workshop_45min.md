@@ -295,30 +295,72 @@ Wait for pods to restart (`kubectl get pods -n $namespace`), then refresh your b
 
 ### Ideas for Customizing the Blueprint
 
-Blueprints are open-source starting points — here are some quick wins you can explore after the workshop:
+Blueprints are open-source — the source code is available on GitHub and every component can be modified. Here are some customizations you can explore:
 
-**1. Swap to a Different Image Segmentation Model**  
-The MRI Documentation Blueprint can be configured to use a specialized image segmentation AIM instead of the default language model. Image segmentation models identify and label distinct regions within an MRI scan — for example, detecting tumor boundaries, organ contours, or tissue types.
+**1. Upgrade the Image Segmentation Model (UNet via MONAI)**
 
-To swap in a segmentation model, deploy a segmentation AIM from the Workbench catalog (look for models tagged `vision` or `segmentation`, such as a SAM or MedSAM variant), then update the Blueprint to use it:
+The Blueprint currently segments brain tissue using simple K-means clustering inside `segment_brain_tissue()` in `src/mri_analysis.py`. You can replace this with a deep learning UNet model from a [MONAI bundle](https://monai.io/model-zoo.html) for clinical-grade accuracy — identifying tumor boundaries, organ contours, and tissue types with far greater precision.
+
+First, clone the Blueprint source:
 
 ```bash
-segmentation_service="aim-segmentation-<model-id>"   # your deployed segmentation AIM
-
-helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
-  --set segmentation.existingService=$segmentation_service \
-  | kubectl apply -f - -n $namespace
+git clone https://github.com/amd-enterprise-ai/solution-blueprints.git
+cd solution-blueprints/solution-blueprints/mri-doc
 ```
 
-With a segmentation model connected, the application can highlight anatomical structures directly on the scan images in addition to generating text reports.
+Open `src/mri_analysis.py` and find the `segment_brain_tissue()` function. The current K-means implementation looks like this:
 
-**2. Swap to a Different Language Model**  
-Change the `llm.existingService` value to point at any other deployed AIM. Try a larger model for more detailed clinical summaries, or a fine-tuned medical language model (e.g., a BioMedLM variant) for domain-specific accuracy.
+```python
+# Current: simple K-means clustering
+def segment_brain_tissue(image_array, n_clusters=3):
+    pixels = image_array.reshape(-1, 1).astype(np.float32)
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+    kmeans.fit(pixels)
+    labels = kmeans.labels_.reshape(image_array.shape)
+    return labels
+```
 
-**3. Change the System Prompt**  
+Replace it with a MONAI UNet inference call:
+
+```python
+# Upgraded: MONAI UNet from a pretrained bundle
+import torch
+from monai.networks.nets import UNet
+from monai.transforms import Compose, ScaleIntensity, EnsureChannelFirst, ToTensor
+
+def segment_brain_tissue(image_array, model_path="models/brain_segmentation_unet.pth"):
+    # Load pretrained UNet (download bundle from MONAI Model Zoo)
+    model = UNet(
+        spatial_dims=2,
+        in_channels=1,
+        out_channels=3,       # 3 tissue classes: CSF, grey matter, white matter
+        channels=(16, 32, 64, 128),
+        strides=(2, 2, 2),
+    )
+    model.load_state_dict(torch.load(model_path, map_location="cpu"))
+    model.eval()
+
+    transform = Compose([EnsureChannelFirst(), ScaleIntensity(), ToTensor()])
+    input_tensor = transform(image_array).unsqueeze(0)   # add batch dim
+
+    with torch.no_grad():
+        output = model(input_tensor)
+    labels = output.argmax(dim=1).squeeze().numpy()
+    return labels
+```
+
+Download a pretrained bundle from the MONAI Model Zoo and save the weights to `models/brain_segmentation_unet.pth`, then rebuild and redeploy the Blueprint container. The application will now use deep learning segmentation on every uploaded scan.
+
+**2. Swap to a Different Language Model**
+
+Change the `llm.existingService` value to point at any other deployed AIM. Try a larger model for more detailed clinical summaries, or a fine-tuned medical language model (e.g., a BioMedLM variant) for domain-specific accuracy. No application code changes needed.
+
+**3. Change the System Prompt**
+
 Each Blueprint exposes prompt configuration. Edit the system prompt to adapt the AI's output style — for example, switching from radiologist-facing technical language to patient-friendly plain-English summaries, or restricting responses to a specific imaging modality (MRI, CT, X-ray).
 
-**4. Deploy a Different Blueprint for Your Use Case**  
+**4. Deploy a Different Blueprint for Your Use Case**
+
 The same workflow works for any Blueprint:
 
 | Blueprint | Chart Name | Best For |
