@@ -99,9 +99,9 @@ You should now see the **AMD Resource Manager Dashboard**.
 
 ------------------------------------------------------------------------
 
-## Installing AMD Enterprise AI Suite On Premises
+## Installing AMD Enterprise AI Software Stack On Premises
 
-This guide walks you through installing [AMD Enterprise AI Suite](https://enterprise-ai.docs.amd.com/en/latest/platform-infrastructure/on-premises-installation.html) on a single node. The installation uses a tool called **Cluster Bloom**, which sets up a Kubernetes cluster and installs the platform for you.
+This guide walks you through installing [AMD Enterprise AI Software Stack](https://enterprise-ai.docs.amd.com/en/latest/platform-infrastructure/on-premises-installation.html) on a single node. The installation uses a tool called **Cluster Bloom**, which sets up a Kubernetes cluster and installs the platform for you.
 
 *For the full installation reference, including TLS certificate options, and backup and restoration, see the [official documentation](https://enterprise-ai.docs.amd.com/en/latest/platform-infrastructure/on-premises-installation.html).*
 
@@ -178,7 +178,7 @@ You can monitor the progress in the web interface.
 
 #### Step 4 — Monitor the Installation
 
-The Kubernetes installation is finished when the UI shows that all steps are 100% complete, and the terminal confirms that the “Installation completed successfully”. Once the cluster is operational, the application installation begins automatically.
+The Kubernetes installation is finished when the UI shows that all steps are 100% complete, and the terminal confirms that the "Installation completed successfully". Once the cluster is operational, the application installation begins automatically.
 
 View the installation in Kubernetes by reloading the shell environment:
 
@@ -212,4 +212,3 @@ You should now see the **AMD Resource Manager Dashboard**.
 A Hugging Face token is required to download gated models. You can add it directly through the AMD AI Workbench UI when deploying or fine-tuning a model — the token is stored securely as a Kubernetes secret.
 
 ------------------------------------------------------------------------
-
