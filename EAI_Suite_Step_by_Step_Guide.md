@@ -8,7 +8,7 @@
 
 ## Overview
 
-This guide walks complete beginners through installing, configuring, and using the **AMD Enterprise AI Suite** on AMD Developer Cloud.
+This guide walks complete beginners through installing, configuring, and using the **AMD Enterprise AI Software Stack** on AMD Developer Cloud.
 
 ### Target Audience
 
@@ -117,7 +117,7 @@ Then open:
 #### Default Credentials
 
 | Field    | Value                                      |
-|----------|--------------------------------------------|
+|----------|--------------------------------------------||
 | Username | `devuser@<your-ip-address>.nip.io`         |
 | Password | `password`                                 |
 
@@ -125,9 +125,9 @@ You should now see the **AMD Resource Manager Dashboard**.
 
 ------------------------------------------------------------------------
 
-## Installing AMD Enterprise AI Suite On Premises
+## Installing AMD Enterprise AI Software Stack On Premises
 
-This guide walks you through installing [AMD Enterprise AI Suite](https://enterprise-ai.docs.amd.com/en/latest/platform-infrastructure/on-premises-installation.html) on a single node. The installation uses a tool called **Cluster Bloom**, which sets up a Kubernetes cluster and installs the platform for you.
+This guide walks you through installing [AMD Enterprise AI Software Stack](https://enterprise-ai.docs.amd.com/en/latest/platform-infrastructure/on-premises-installation.html) on a single node. The installation uses a tool called **Cluster Bloom**, which sets up a Kubernetes cluster and installs the platform for you.
 
 *For the full installation reference, including TLS certificate options, and backup and restoration, see the [official documentation](https://enterprise-ai.docs.amd.com/en/latest/platform-infrastructure/on-premises-installation.html).*
 
@@ -204,7 +204,7 @@ You can monitor the progress in the web interface.
 
 #### Step 4 — Monitor the Installation
 
-The Kubernetes installation is finished when the UI shows that all steps are 100% complete, and the terminal confirms that the “Installation completed successfully”. Once the cluster is operational, the application installation begins automatically.
+The Kubernetes installation is finished when the UI shows that all steps are 100% complete, and the terminal confirms that the "Installation completed successfully". Once the cluster is operational, the application installation begins automatically.
 
 View the installation in Kubernetes by reloading the shell environment:
 
@@ -500,7 +500,7 @@ vllm bench serve \
 ### Understanding Benchmark Output
 
 | Metric | Meaning |
-|--------|---------|
+|--------|----------|
 | **Throughput** | Total tokens processed per second across all concurrent requests |
 | **TTFT** | Time to First Token — how quickly the model starts responding |
 | **Latency** | End-to-end time per request |
@@ -563,7 +563,7 @@ Blueprints are deployed via **Helm**, a package manager for Kubernetes. Before p
 
 ## Deploying a Blueprint
 
-Solution Blueprints are provided as Helm charts. The recommended approach is to render the chart with `helm template` and pipe the output directly to `kubectl apply`. This avoids Helm managing release state, which simplifies cleanup. We don’t recommend helm install, which by default uses a Secret to keep track of the related resources. Ensure you have access to the cluster trough the terminal. Access guide can be found [here](https://enterprise-ai.docs.amd.com/en/latest/resource-manager/workloads/accessing-the-cluster.html#constructing-the-kubeconfig-file).
+Solution Blueprints are provided as Helm charts. The recommended approach is to render the chart with `helm template` and pipe the output directly to `kubectl apply`. This avoids Helm managing release state, which simplifies cleanup. We don't recommend helm install, which by default uses a Secret to keep track of the related resources. Ensure you have access to the cluster trough the terminal. Access guide can be found [here](https://enterprise-ai.docs.amd.com/en/latest/resource-manager/workloads/accessing-the-cluster.html#constructing-the-kubeconfig-file).
 
 
 Replace the placeholder values before running:
