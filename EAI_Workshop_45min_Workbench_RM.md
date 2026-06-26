@@ -16,7 +16,8 @@ You will:
 1. **Explore AMD Resource Manager** — create a project, configure quotas, manage secrets and storage, and add team members
 2. **Deploy and manage AI models** through AMD AI Workbench — observe live inference metrics, configure autoscaling, and chat with a running model
 3. **Launch a VSCode workspace** inside the platform and run a benchmark against your deployed model using `vllm bench serve`
-4. **(Bonus)** Tour the ComfyUI workspace for AI image generation
+4. **Fine-tune a model on your own data** — upload a training dataset and start a supervised fine-tuning job through the Workbench UI
+5. **(Bonus)** Tour the ComfyUI workspace for AI image generation
 
 No Kubernetes, terminal, or ML engineering experience required.
 
@@ -418,6 +419,85 @@ Inter-Token Latency (ms):
 
 ---
 
+# Part 4: Fine-Tune a Model on Your Own Data (Bonus — if time allows)
+
+Fine-tuning adapts a general-purpose model to your domain — your terminology, your writing style, your proprietary data. This turns a capable but generic model into one that understands your organization's context and produces outputs that match your standards.
+
+**AMD AI Workbench makes fine-tuning a UI workflow** — no Python, no training scripts, no GPU configuration required. You upload a dataset, select a base model, and the platform handles the rest.
+
+---
+
+## Step 4A: Upload Training Data
+
+Your training data needs to be in **JSONL format** — one JSON object per line, where each object contains a prompt/response pair. A sample dataset is provided by your facilitator at:
+
+```
+https://github.com/isab8liu-alum/eai-suite-guides/blob/main/dataset/sft-demo-data.jsonl
+```
+
+In AMD AI Workbench:
+
+1. Click **Datasets** in the left sidebar
+2. Click **Upload**
+
+![Dataset upload interface](images/04-workbench/uploading_dataset_finetuning.png)
+
+3. Fill in:
+   - **Dataset name** — e.g., `workshop-demo-data`
+   - **Data type** — `.jsonl` / instruction fine-tuning format
+   - **Description** — optional
+4. Select your file and click **Upload**
+
+> **What is in the dataset?** The sample dataset contains instruction-response pairs in the standard SFT (Supervised Fine-Tuning) format. Each entry looks like:
+> ```json
+> {"messages": [{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]}
+> ```
+> Your production dataset would contain examples of the exact responses you want the model to learn — clinical notes, customer service replies, domain-specific Q&A, and so on.
+
+---
+
+## Step 4B: Start a Fine-Tuning Job
+
+1. Click **Models** in the left sidebar → switch to the **Custom Models** tab
+
+![Custom Models view](images/04-workbench/workbench_custom_models_view.png)
+
+2. Click **Fine-tune model**
+
+![Fine-tune model configuration panel](images/04-workbench/finetune_model_menu.png)
+
+3. Configure the fine-tuning job:
+
+| Setting | Value | Notes |
+|---|---|---|
+| **Base model** | Select the model you deployed in Part 2 | The starting point — your dataset teaches it new behavior |
+| **Dataset** | `workshop-demo-data` | The training data you uploaded in Step 4A |
+| **Method** | LoRA (Low-Rank Adaptation) | Efficient fine-tuning — adapts the model without retraining all weights |
+| **Epochs** | 3 | Number of passes through the training data — leave default for the workshop |
+| **Learning rate** | 2e-4 | Leave default for the workshop |
+
+4. Click **Start training**
+
+The fine-tuning job appears in **Workloads** with a **Training** status badge. You can monitor its progress — loss curves and training metrics stream in as it runs.
+
+> **How long does it take?** With a small dataset on 1 GPU, a 3-epoch job typically finishes in 5–15 minutes. Larger datasets or more epochs take proportionally longer. Resource Manager quotas apply — the training job consumes GPU resources from your project's quota while running.
+
+---
+
+## Step 4C: Deploy and Test Your Fine-Tuned Model
+
+Once training completes, the custom model appears in the **Custom Models** tab.
+
+1. Click **Deploy** on your fine-tuned model — it deploys exactly like any other AIM
+2. Wait for status to show **Running**
+3. Click **Chat** and ask it questions from the training domain
+
+Compare the fine-tuned model's responses against the base model from Part 2. The fine-tuned model should show noticeably better alignment with the style and content of your training data.
+
+> **Re-use in Blueprints:** Any deployed fine-tuned model can be connected to a Blueprint using the same `llm.existingService` pattern from Workshop 1. A Blueprint application can instantly switch to a domain-specialized model with no code changes.
+
+---
+
 # Bonus: ComfyUI Workspace — AI Image Generation (if time allows)
 
 AMD AI Workbench also supports **ComfyUI** workspaces — a node-based visual interface for running AI image generation workflows with Stable Diffusion and other models.
@@ -447,6 +527,7 @@ In 45 minutes you:
 - **Launched a VSCode workspace** — an integrated development environment inside the cluster
 - **Ran a benchmark** with `vllm bench serve` — validating whether your deployment meets SLO targets under realistic concurrent load
 - **Interpreted benchmark output** — connecting raw numbers to production readiness decisions
+- **Fine-tuned a model on custom data** — uploaded a training dataset and ran a supervised fine-tuning job entirely through the Workbench UI (bonus)
 
 ## Key Concepts to Carry Forward
 
@@ -457,6 +538,8 @@ In 45 minutes you:
 **Autoscaling requires both a policy and a quota ceiling.** Set realistic max-replica limits based on your cluster capacity and cost targets, not just on peak demand estimates.
 
 **The VSCode workspace and your models share the same network.** This means you can call model APIs directly from notebook code, benchmark scripts, or application prototypes without any routing complexity.
+
+**Fine-tuned models are first-class AIMs.** Once training completes, a fine-tuned model deploys identically to any base AIM — it gets the same metrics dashboard, autoscaling, and chat interface. It can also be pointed to by any Blueprint using `llm.existingService`.
 
 ## Quick Reference
 
@@ -471,6 +554,9 @@ In 45 minutes you:
 | Configure autoscaling | Workbench → Model Details → Autoscale |
 | Launch VSCode / ComfyUI | Workbench → Workspaces → Create |
 | Run benchmark | VSCode terminal → `vllm bench serve` |
+| Upload training dataset | Workbench → Datasets → Upload |
+| Start fine-tuning job | Workbench → Models → Custom Models → Fine-tune model |
+| Deploy fine-tuned model | Workbench → Custom Models → Deploy |
 
 ## Next Steps
 
@@ -480,6 +566,7 @@ In 45 minutes you:
 | Full Workbench documentation | [AI Workbench Docs](https://enterprise-ai.docs.amd.com/en/latest/workbench/overview.html) |
 | Browse the full AIM catalog | [AIMs Catalog](https://enterprise-ai.docs.amd.com/en/latest/aims/aims_catalog.html) |
 | Autoscaling configuration reference | [Autoscaling Docs](https://enterprise-ai.docs.amd.com/en/latest/workbench/autoscaling.html) |
+| Fine-tuning documentation | [Fine-Tuning Guide](https://enterprise-ai.docs.amd.com/en/latest/workbench/finetuning.html) |
 | Install the platform | [Installation Guide](https://enterprise-ai.docs.amd.com/en/latest/index.html) |
 
 ---
