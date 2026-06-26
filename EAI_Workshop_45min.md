@@ -1,5 +1,5 @@
 # Advancing AI Day Workshop
-### AMD Enterprise AI Suite — Hands-On Lab (45 Minutes)
+### AMD Enterprise AI Software Stack — Hands-On Lab (45 Minutes)
 
 **Audience:** Enterprise evaluators and developers new to the AMD AI platform  
 **Prerequisites:** A Linux laptop, a terminal, and the workshop credentials provided by your facilitator  
@@ -9,7 +9,7 @@
 
 ## What You Will Build Today
 
-In this workshop you will experience the AMD Enterprise AI Suite end-to-end — from deploying your first AI model to launching a complete AI-powered medical imaging application.
+In this workshop you will experience the AMD Enterprise AI Software Stack end-to-end — from deploying your first AI model to launching a complete AI-powered medical imaging application.
 
 You will:
 1. **Deploy a live AI model** through the AMD AI Workbench — no code required
@@ -375,11 +375,125 @@ Change the `chart` variable and re-run the deploy command. You can have multiple
 
 ---
 
-# Part 3: Fine-Tune a Model on Your Own Data (Bonus — if time allows)
+# Part 3: Deploy AIMs via CLI (Bonus — if time allows)
+
+The AMD AI Workbench UI is ideal for self-service model deployment, but enterprise platform teams often need to deploy AIMs programmatically — from CI/CD pipelines, scripts, or automation tooling. The **AIM Engine CLI** provides direct Kubernetes-native control over AIM lifecycle.
+
+> **When would you use this?** Scripted deployments, automated scaling triggers, GitOps workflows, or when deploying AIMs to namespaces outside the Workbench's scope.
+
+---
+
+## Step 3A: Understand How AIMs Deploy Under the Hood
+
+Every AIM deployed through the Workbench is backed by a **Kubernetes Custom Resource** of kind `AIMDeployment`. The Workbench UI is simply a front-end for creating and managing these resources. You can create them directly via `kubectl` — giving you the same result without the UI.
+
+A minimal AIM deployment manifest looks like this:
+
+```yaml
+apiVersion: aims.amd.com/v1alpha1
+kind: AIMDeployment
+metadata:
+  name: llama-3-8b-cli
+  namespace: my-namespace
+spec:
+  model:
+    name: meta-llama/Meta-Llama-3-8B-Instruct
+  resources:
+    gpus: 1
+  performanceProfile: latency
+```
+
+---
+
+## Step 3B: Deploy an AIM via kubectl
+
+Make sure your `KUBECONFIG` is set (from Step 2B), then save the manifest and apply it:
+
+```bash
+cat <<EOF > aim-deploy.yaml
+apiVersion: aims.amd.com/v1alpha1
+kind: AIMDeployment
+metadata:
+  name: llama-3-8b-cli
+  namespace: $namespace
+spec:
+  model:
+    name: meta-llama/Meta-Llama-3-8B-Instruct
+  resources:
+    gpus: 1
+  performanceProfile: latency
+  huggingFace:
+    tokenSecret:
+      name: hugging-face-token   # Kubernetes secret created in Resource Manager
+      key: HF_TOKEN
+EOF
+
+kubectl apply -f aim-deploy.yaml
+```
+
+Watch the AIM come up:
+
+```bash
+kubectl get aimdeployments -n $namespace
+kubectl get pods -n $namespace -l app=llama-3-8b-cli
+```
+
+> **What is the controller doing?** The AIM Engine controller watches for `AIMDeployment` resources and automatically creates the underlying vLLM serving pod, service, and metrics endpoint. You never touch the raw pod spec.
+
+---
+
+## Step 3C: Query the AIM Directly
+
+Once the pod is **Running**, you can query the model directly from the terminal — no UI needed:
+
+```bash
+# Get the cluster-internal service endpoint
+kubectl get svc -n $namespace -l app=llama-3-8b-cli
+
+# Port-forward to your local machine
+kubectl port-forward svc/llama-3-8b-cli 8000:8000 -n $namespace &
+
+# Send a test inference request
+curl http://localhost:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "meta-llama/Meta-Llama-3-8B-Instruct",
+    "messages": [{"role": "user", "content": "Summarize the key benefits of AMD MI300X GPUs in two sentences."}],
+    "max_tokens": 150
+  }'
+```
+
+The response will stream back in OpenAI-compatible format — meaning any application already written for OpenAI's API can point to this endpoint with no code changes.
+
+---
+
+## Step 3D: Tear Down the AIM
+
+```bash
+kubectl delete aimdeployment llama-3-8b-cli -n $namespace
+```
+
+The controller automatically cleans up all associated pods and services.
+
+---
+
+## CLI vs. UI: When to Use Each
+
+| Scenario | Use |
+|---|---|
+| Developer / data scientist self-service | **Workbench UI** |
+| Automated deployment from CI/CD | **kubectl / AIM Engine CLI** |
+| GitOps — model config stored in git | **kubectl apply** with YAML manifests |
+| Batch deployment of many models | **kubectl** with a loop or Helm |
+| Exploring the catalog and testing models | **Workbench UI** |
+
+---
+
+# Part 4: Fine-Tune a Model on Your Own Data (Bonus — if time allows)
 
 Fine-tuning adapts a general-purpose model to your domain — your terminology, your writing style, your proprietary data. The Workbench makes this accessible without any ML engineering background.
 
-## Step 3A: Upload Training Data
+## Step 4A: Upload Training Data
 
 In AMD AI Workbench:
 
@@ -396,7 +510,7 @@ In AMD AI Workbench:
    - **Description** — optional
 5. Upload the file and click **Upload**
 
-## Step 3B: Start Fine-Tuning
+## Step 4B: Start Fine-Tuning
 
 1. Click **Models** → switch to the **Custom Models** tab
 
@@ -427,6 +541,7 @@ In 45 minutes you:
 - **Deployed the MRI Documentation Blueprint** with a single Helm command
 - **Connected the Blueprint to your model** — demonstrating resource sharing across applications
 - **Explored customization paths** for adapting Blueprints to real enterprise use cases
+- **Deployed an AIM via CLI** — scripted, Kubernetes-native model deployment (bonus)
 - **Started a fine-tuning job** on custom data (bonus)
 
 ## Quick Reference Commands
@@ -456,9 +571,20 @@ kubectl port-forward services/aimsb-mri-docs-$name-ui 7860:7860 -n $namespace
 # List services in your namespace
 kubectl get svc -n $namespace
 
+# Deploy an AIM via CLI
+kubectl apply -f aim-deploy.yaml
+
+# Query a CLI-deployed AIM
+kubectl port-forward svc/llama-3-8b-cli 8000:8000 -n $namespace &
+curl http://localhost:8000/v1/chat/completions -H "Content-Type: application/json" \
+  -d '{"model":"meta-llama/Meta-Llama-3-8B-Instruct","messages":[{"role":"user","content":"Hello"}],"max_tokens":50}'
+
 # Remove a Blueprint
 helm template "$name" "oci://registry-1.docker.io/amdenterpriseai/$chart" \
   | kubectl delete -n "$namespace" -f -
+
+# Remove a CLI-deployed AIM
+kubectl delete aimdeployment llama-3-8b-cli -n $namespace
 
 # Visual cluster dashboard
 k9s
@@ -475,4 +601,4 @@ k9s
 
 ---
 
-*AMD Enterprise AI Suite — Advancing AI Day Workshop | enterprise-ai.docs.amd.com*
+*AMD Enterprise AI Software Stack — Advancing AI Day Workshop | enterprise-ai.docs.amd.com*
