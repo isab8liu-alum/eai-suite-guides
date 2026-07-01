@@ -2,8 +2,41 @@
 ### AMD Enterprise AI Software Stack — Hands-On Lab (45 Minutes)
 
 **Audience:** Enterprise evaluators and developers new to the AMD AI platform  
-**Prerequisites:** A Linux laptop, a terminal, and the workshop credentials provided by your facilitator  
+**Prerequisites:** A laptop (Linux, macOS, or Windows with WSL), a terminal, and the workshop credentials provided by your facilitator  
 **Time:** 45 minutes total
+
+---
+
+## System Setup: Preparing Your Laptop
+
+This workshop uses local terminal commands to install tools and connect to the cluster. The instructions are written for Linux; follow the section for your OS before starting Part 1.
+
+### 🐧 Linux
+No additional setup required. Open your terminal and proceed.
+
+### 🪟 Windows — Use WSL (Windows Subsystem for Linux)
+All workshop commands must run inside **WSL**, not PowerShell or Command Prompt. If WSL is not already installed:
+
+1. Open **PowerShell as Administrator**
+2. Run: `wsl --install`
+3. Restart your machine when prompted
+4. After restart, open **WSL** (search "Ubuntu" or "WSL" in the Start menu) and complete the Ubuntu first-run setup (create a username and password)
+
+All subsequent terminal commands in this workshop are run inside your WSL terminal.
+
+### 🍎 macOS
+Open **Terminal** (Applications → Utilities → Terminal) or a terminal emulator of your choice. The workshop commands run as-is on macOS with one exception: the `kubectl` install step uses a Linux binary URL — see the footnote in Step 2A.
+
+### Required Tools Summary
+The tools below are installed during Step 2A. For reference:
+
+| Tool | Purpose | Pre-installed? |
+|---|---|---|
+| `curl` | Downloads tools and sends API test requests | Yes (Linux, macOS, WSL) |
+| `git` | Clones Blueprint source for customization | Usually — if not: `sudo apt install git` (Linux/WSL) or `xcode-select --install` (macOS) |
+| `kubectl` | Communicates with the Kubernetes cluster | Installed in Step 2A |
+| `helm` | Deploys Kubernetes applications (Blueprints) | Installed in Step 2A |
+| `k9s` | Visual terminal dashboard for the cluster | Installed in Step 2A |
 
 ---
 
@@ -151,6 +184,8 @@ curl -sS https://webinstall.dev/k9s | bash
 source ~/.config/envman/PATH.env
 ```
 
+> **macOS note:** You can also install k9s via Homebrew: `brew install k9s`
+
 ```bash
 # Install kubectl — communicates with the Kubernetes cluster
 mkdir -p ~/.kube
@@ -159,6 +194,8 @@ chmod +x kubectl
 sudo mv kubectl /usr/local/bin/
 kubectl version --client
 ```
+
+> **macOS note:** Replace `linux/amd64` in the kubectl URL with `darwin/amd64` (Intel Mac) or `darwin/arm64` (Apple Silicon M1/M2/M3). The rest of the command is identical.
 
 ```bash
 # Install Helm — the package manager used to deploy Blueprints
@@ -295,7 +332,7 @@ Wait for pods to restart (`kubectl get pods -n $namespace`), then refresh your b
 
 ### Ideas for Customizing the Blueprint
 
-Blueprints are open-source — the source code is available on GitHub and every component can be modified. Here are some customizations you can explore:
+Bluprints are open-source — the source code is available on GitHub and every component can be modified. Here are some customizations you can explore:
 
 **1. Upgrade the Image Segmentation Model (UNet via MONAI)**
 
@@ -489,116 +526,86 @@ The controller automatically cleans up all associated pods and services.
 
 ---
 
+
 # Part 4: Fine-Tune a Model on Your Own Data (Bonus — if time allows)
 
-Fine-tuning adapts a general-purpose model to your domain — your terminology, your writing style, your proprietary data. The Workbench makes this accessible without any ML engineering background.
+Fine-tuning adapts a general-purpose model to your domain — your terminology, your writing style, your proprietary data. This turns a capable but generic model into one that understands your organization's context and produces outputs that match your standards.
+
+**AMD AI Workbench makes fine-tuning a UI workflow** — no Python, no training scripts, no GPU configuration required. You upload a dataset, select a base model, and the platform handles the rest.
+
+---
 
 ## Step 4A: Upload Training Data
+
+Your training data needs to be in **JSONL format** — one JSON object per line, where each object contains a prompt/response pair. A sample dataset is provided by your facilitator at:
+
+```
+https://github.com/isab8liu-alum/eai-suite-guides/blob/main/dataset/sft-demo-data.jsonl
+```
 
 In AMD AI Workbench:
 
 1. Click **Datasets** in the left sidebar
 2. Click **Upload**
-3. Use the sample dataset provided by your facilitator:  
-   `https://github.com/isab8liu-alum/eai-suite-guides/blob/main/dataset/sft-demo-data.jsonl`
-
-![Dataset upload interface](images/04-workbench/uploading_dataset_finetuning.png)
-
-4. Fill in:
+3. Fill in:
    - **Dataset name** — e.g., `workshop-demo-data`
    - **Data type** — `.jsonl` / instruction fine-tuning format
-   - **Description** — optional
-5. Upload the file and click **Upload**
+4. Select your file and click **Upload**
 
-## Step 4B: Start Fine-Tuning
+> **What is in the dataset?** The sample dataset contains instruction-response pairs in the standard SFT (Supervised Fine-Tuning) format. Each entry looks like:
+> ```json
+> {"messages": [{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]}
+> ```
 
-1. Click **Models** → switch to the **Custom Models** tab
+---
 
-![Custom Models view](images/04-workbench/workbench_custom_models_view.png)
+## Step 4B: Start a Fine-Tuning Job
 
+1. Click **Models** in the left sidebar → switch to the **Custom Models** tab
 2. Click **Fine-tune model**
+3. Configure the fine-tuning job:
 
-![Fine-tune model configuration panel](images/04-workbench/finetune_model_menu.png)
+| Setting | Value | Notes |
+|---|---|---|
+| **Base model** | Select the model you deployed in Part 1 | The starting point — your dataset teaches it new behavior |
+| **Dataset** | `workshop-demo-data` | The training data you uploaded in Step 4A |
+| **Method** | LoRA (Low-Rank Adaptation) | Efficient fine-tuning — adapts the model without retraining all weights |
+| **Epochs** | 3 | Number of passes through the training data |
+| **Learning rate** | 2e-4 | Leave default for the workshop |
 
-3. Configure:
-   - **Base model** — Select the model you deployed in Part 1
-   - **Dataset** — Select `workshop-demo-data`
-   - **Training parameters** — Leave defaults for the workshop
 4. Click **Start training**
 
-The fine-tuning job appears in **Workloads**. Once complete, your custom model is available in the catalog and can be deployed as an AIM — then pointed to by any Blueprint using `llm.existingService`.
+The fine-tuning job appears in **Workloads** with a **Training** status badge. You can monitor its progress — loss curves and training metrics stream in as it runs.
 
 ---
 
-# Wrap-Up
+## Step 4C: Deploy and Test Your Fine-Tuned Model
 
-## What You Accomplished
+Once training completes, the custom model appears in the **Custom Models** tab.
 
-In 45 minutes you:
+1. Click **Deploy** on your fine-tuned model — it deploys exactly like any other AIM
+2. Wait for status to show **Running**
+3. Click **Chat** and ask it questions from the training domain
 
-- **Deployed a live AI model** through the Workbench UI — no infrastructure expertise needed
-- **Observed real-time SLO metrics** for a production-grade model deployment
-- **Deployed the MRI Documentation Blueprint** with a single Helm command
-- **Connected the Blueprint to your model** — demonstrating resource sharing across applications
-- **Explored customization paths** for adapting Blueprints to real enterprise use cases
-- **Deployed an AIM via CLI** — scripted, Kubernetes-native model deployment (bonus)
-- **Started a fine-tuning job** on custom data (bonus)
+Compare the fine-tuned model's responses against the base model from Part 1. The fine-tuned model should show noticeably better alignment with your domain terminology and the response style captured in the training data.
 
-## Quick Reference Commands
+---
 
-```bash
-# Set variables
-name="my-deployment"
-namespace="my-namespace"
-chart="aimsb-mri-docs"
-servicename="aim-llm-<your-model-service>"
+## Workshop Complete
 
-# Deploy a Blueprint (with its own model)
-helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
-  | kubectl apply -f - -n $namespace
+You have now experienced the AMD Enterprise AI Software Stack end-to-end:
 
-# Redeploy pointing to an existing AIM
-helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
-  --set llm.existingService=$servicename \
-  | kubectl apply -f - -n $namespace
-
-# Check pod status
-kubectl get pods -n $namespace
-
-# Port-forward to access the MRI Documentation Blueprint
-kubectl port-forward services/aimsb-mri-docs-$name-ui 7860:7860 -n $namespace
-
-# List services in your namespace
-kubectl get svc -n $namespace
-
-# Deploy an AIM via CLI
-kubectl apply -f aim-deploy.yaml
-
-# Query a CLI-deployed AIM
-kubectl port-forward svc/llama-3-8b-cli 8000:8000 -n $namespace &
-curl http://localhost:8000/v1/chat/completions -H "Content-Type: application/json" \
-  -d '{"model":"meta-llama/Meta-Llama-3-8B-Instruct","messages":[{"role":"user","content":"Hello"}],"max_tokens":50}'
-
-# Remove a Blueprint
-helm template "$name" "oci://registry-1.docker.io/amdenterpriseai/$chart" \
-  | kubectl delete -n "$namespace" -f -
-
-# Remove a CLI-deployed AIM
-kubectl delete aimdeployment llama-3-8b-cli -n $namespace
-
-# Visual cluster dashboard
-k9s
-```
-
-## Next Steps
-
-| Goal | Resource |
+| What You Did | What It Demonstrates |
 |---|---|
-| Explore more Blueprints | [Solution Blueprints Overview](https://enterprise-ai.docs.amd.com/en/latest/solution-blueprints/overview.html) |
-| Browse the full AIM catalog | [AIMs Catalog](https://enterprise-ai.docs.amd.com/en/latest/aims/aims_catalog.html) |
-| Install the platform | [Installation Guide](https://enterprise-ai.docs.amd.com/en/latest/index.html) |
-| CLI and automation (AIM Engine) | [AIM Engine Docs](https://enterprise-ai.docs.amd.com/en/latest/aims/aim-engine/overview.html) |
+| Deployed an AI model via Workbench UI | Self-service AI for teams without infrastructure expertise |
+| Observed live inference metrics and SLO tracking | Production readiness visibility from day one |
+| Deployed a Solution Blueprint with a single Helm command | Complete AI applications in minutes |
+| Connected the Blueprint to your model | The platform's composable, shared-model architecture |
+| Customized the Blueprint's AI backend | Open-source, modifiable applications |
+| Deployed an AIM via kubectl | Programmable, CLI-native model lifecycle management |
+| Fine-tuned a model on custom data | Domain adaptation without ML engineering expertise |
 
----
-
-*AMD Enterprise AI Software Stack — Advancing AI Day Workshop | enterprise-ai.docs.amd.com*
+**Next steps:**
+- Explore additional Solution Blueprints at [AMD Enterprise AI](https://enterprise-ai.docs.amd.com)
+- Ask your facilitator about bringing the AMD AI platform to your organization
+- Review the [AMD Enterprise AI documentation](https://enterprise-ai.docs.amd.com) for architecture guides and API references

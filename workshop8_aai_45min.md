@@ -8,6 +8,28 @@
 
 ---
 
+## System Setup: Preparing Your Laptop
+
+This workshop runs entirely in the browser — no local commands are required. All benchmarking in Part 3 is done inside an in-cluster VSCode workspace (which is Linux-based), so your laptop's operating system does not affect any workshop commands.
+
+That said, if your facilitator asks you to run any setup steps locally (e.g., copying a kubeconfig), use a proper shell for your OS:
+
+### 🐧 Linux
+No setup required. Your default terminal is ready.
+
+### 🪟 Windows — Use WSL (Windows Subsystem for Linux)
+Use **WSL** rather than PowerShell or Command Prompt for any local shell work.
+
+1. Open **PowerShell as Administrator**
+2. Run: `wsl --install`
+3. Restart your machine when prompted
+4. After restart, open **WSL** (search "Ubuntu" or "WSL" in the Start menu) and complete the Ubuntu first-run setup (create a username and password)
+
+### 🍎 macOS
+Open **Terminal** (Applications → Utilities → Terminal). No additional tools are needed for this workshop.
+
+---
+
 ## What You Will Learn Today
 
 This workshop takes you deep into the administrative and operational capabilities of the AMD Enterprise AI Software Stack through its two main management interfaces.
@@ -494,12 +516,41 @@ Once training completes, the custom model appears in the **Custom Models** tab.
 
 Compare the fine-tuned model's responses against the base model from Part 2. The fine-tuned model should show noticeably better alignment with your domain terminology and the response style captured in the training data.
 
-> **What LoRA produces:** Fine-tuning with LoRA creates a small set of adapter weights — not a full new model. The adapter is stored separately and loaded on top of the base model at serving time. This means you can maintain one copy of the base weights and swap adapters for different teams or use cases without duplicating the full model.
+> **What LoRA produces:** Fine-tuning with LoRA creates a small set of adapter weights — typically 1–5% the size of the base model — that encode the domain-specific behavior you trained. These adapters are stored separately and layered on top of the base model at inference time. The result is a model that retains general capability while applying your domain knowledge precisely where it matters.
 
 ---
 
 ## Bonus: ComfyUI Workspace for AI Image Generation
 
-If time allows, return to **Workspaces** in AMD AI Workbench and launch the **ComfyUI** workspace. ComfyUI is a node-based interface for building image generation pipelines — you can chain models, ControlNet adapters, LoRA adapters, and post-processing steps visually, without code.
+If time permits, explore the **ComfyUI** workspace — a node-based visual tool for AI image generation workflows.
 
-Once the workspace is running, click **Open** to access the ComfyUI UI in your browser. Load one of the pre-built workflows your facilitator has configured and run an image generation to see the platform's multi-modal capabilities.
+In AMD AI Workbench, click **Workspaces** and look for the **ComfyUI** workspace type. Launch it and click **Open** once it is Running.
+
+ComfyUI provides a canvas-based interface for building image generation pipelines:
+- Connect model loaders, samplers, VAE decoders, and output nodes visually
+- Load different checkpoints and LoRA adapters without editing configuration files
+- Build and save reusable workflows for text-to-image, image-to-image, and inpainting
+
+> **Why ComfyUI on AMD?** ComfyUI runs natively on AMD GPUs via ROCm — the same hardware stack powering your LLM deployments. Your organization can run image generation alongside language models on the same cluster, managed through the same Resource Manager quotas and Workbench UI.
+
+---
+
+## Workshop Complete
+
+You have now experienced the full administrative and operational lifecycle of the AMD Enterprise AI Software Stack:
+
+| What You Did | What It Demonstrates |
+|---|---|
+| Created a project and set quotas in Resource Manager | IT governance and multi-team resource control |
+| Added secrets and storage credentials | Secure credential management without exposing raw tokens |
+| Added team members with role-based access | Controlled self-service — teams deploy without IT tickets |
+| Deployed an AI model and observed live metrics | Production visibility from the first deployment |
+| Configured autoscaling | Dynamic resource efficiency under variable load |
+| Launched a VSCode workspace inside the cluster | Secure, persistent compute for developers — no local GPU needed |
+| Ran a benchmark with vLLM bench serve | Quantified SLO validation before production commitment |
+| Fine-tuned a model on custom data | Domain adaptation without ML engineering expertise |
+
+**Next steps:**
+- Explore additional workspace types (JupyterLab, ComfyUI) for different team workflows
+- Ask your facilitator about bringing the AMD AI platform to your organization
+- Review the [AMD Enterprise AI documentation](https://enterprise-ai.docs.amd.com) for architecture guides and API references
