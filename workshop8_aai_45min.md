@@ -10,7 +10,7 @@
 
 ## System Setup: Preparing Your Laptop
 
-This workshop runs entirely in the browser — no local commands are required. All benchmarking in Part 2 is done inside an in-cluster VSCode workspace (which is Linux-based), so your laptop's operating system does not affect any workshop commands.
+This workshop runs entirely in the browser — no local commands are required. All benchmarking in Part 3 is done inside an in-cluster VSCode workspace (which is Linux-based), so your laptop's operating system does not affect any workshop commands.
 
 That said, if your facilitator asks you to run any setup steps locally (e.g., copying a kubeconfig), use a proper shell for your OS:
 
@@ -39,7 +39,7 @@ You will:
 2. **Fine-tune a model on your own data** — upload a training dataset and start a supervised fine-tuning job through the Workbench UI
 3. **(Bonus)** Tour the ComfyUI workspace for AI image generation
 4. **(Optional)** **Benchmark your model** with `vllm bench serve` — launch a VSCode workspace inside the platform and run a load test against your deployed model
-5. **(Optional)** **Explore AMD Resource Manager** — create a project, configure quotas, manage secrets and storage, and add team members
+5. **Explore AMD Resource Manager** — view the admin control plane for projects, quotas, secrets, and storage
 
 No Kubernetes, terminal, or ML engineering experience required.
 
@@ -166,37 +166,6 @@ Save the autoscaling configuration. You can validate it later using the `vllm be
 
 ---
 
-## Step 1E: Explore Workspaces
-
-Workspaces are interactive compute environments — JupyterLab, VSCode, or ComfyUI — that run inside the cluster alongside your models. They give users a secure, pre-configured development environment without needing their own GPU hardware.
-
-Click **Workspaces** in the left sidebar.
-
-![Workspaces view](images/04-workbench/workspaces_view.png)
-
-You will see available workspace types. If you plan to do the optional benchmarking section (Part 3), you will need the **VSCode** workspace — you can launch it now or return to this step later.
-
-### Launch a VSCode Workspace
-
-Click on the VSCode workspace card (or **Create Workspace** → VSCode).
-
-In the workspace configuration panel:
-
-![Workspace custom resource allocation](images/04-workbench/workspace-deploy-custom-resource-allocation.png)
-
-- **Name** — e.g., `bench-workspace`
-- **CPU/Memory** — leave defaults for the workshop
-- **GPU** — set to `0` for the benchmarking workspace (the benchmark sends HTTP requests; it does not need a GPU itself)
-- **Storage** — the workspace comes with a persistent home directory
-
-Click **Create**. The workspace status will show **Starting** — typically 1–2 minutes.
-
-Once **Running**, click **Open** to launch VSCode in your browser.
-
-> **What makes this different from a local VSCode?** The workspace runs inside the same Kubernetes cluster as your models. You can reach model services directly by their internal cluster hostname — no port-forwarding or VPN required. Your work is also persistent: files saved in the workspace home directory survive workspace restarts.
-
----
-
 # Part 2: Fine-Tune a Model on Your Own Data (15 minutes)
 
 Fine-tuning adapts a general-purpose model to your domain — your terminology, your writing style, your proprietary data. This turns a capable but generic model into one that understands your organization's context and produces outputs that match your standards.
@@ -320,17 +289,30 @@ Keep this URL — you will use it in the next step.
 
 ---
 
-## Step 3B: Open a Terminal in Your VSCode Workspace
+## Step 3B: Launch a VSCode Workspace
 
-Switch to the VSCode workspace tab you opened in Step 1E (or launch one now if you skipped it).
+Click **Workspaces** in the left sidebar, then click on the VSCode workspace card (or **Create Workspace** → VSCode).
 
-In VSCode, open a terminal: **Terminal → New Terminal** (or `` Ctrl+` ``).
+In the workspace configuration panel:
 
-You are now inside the cluster. The model's internal service is reachable directly from here.
+![Workspace custom resource allocation](images/04-workbench/workspace-deploy-custom-resource-allocation.png)
+
+- **Name** — e.g., `bench-workspace`
+- **CPU/Memory** — leave defaults for the workshop
+- **GPU** — set to `0` for the benchmarking workspace (the benchmark sends HTTP requests; it does not need a GPU itself)
+- **Storage** — the workspace comes with a persistent home directory
+
+Click **Create**. The workspace status will show **Starting** — typically 1–2 minutes.
+
+Once **Running**, click **Open** to launch VSCode in your browser.
+
+> **What makes this different from a local VSCode?** The workspace runs inside the same Kubernetes cluster as your models. You can reach model services directly by their internal cluster hostname — no port-forwarding or VPN required. Your work is also persistent: files saved in the workspace home directory survive workspace restarts.
 
 ---
 
 ## Step 3C: Run the Benchmark
+
+In VSCode, open a terminal: **Terminal → New Terminal** (or `` Ctrl+` ``).
 
 Run the benchmark using the Python invocation below — this is the most reliable method and matches exactly what is shown in the screenshot. Substitute your model's internal URL and name from Step 3A:
 
@@ -398,9 +380,7 @@ Inter-Token Latency (ms):
 
 ---
 
-# Part 4: AMD Resource Manager — Platform Administration (Optional)
-
-> **This section is optional.** The core workshop (Parts 1–2) does not require it. Come back here if time allows, or explore it after the session to see how the platform's IT governance layer works end-to-end.
+# Part 4: AMD Resource Manager — Platform Administration (10 minutes)
 
 ## Why Resource Manager?
 
@@ -413,7 +393,7 @@ In enterprise environments, AI infrastructure is shared. Multiple teams — data
 - Store and distribute **secrets** (API keys, model tokens) securely
 - Attach **persistent storage** for datasets and model artifacts
 
-In this section you will go through the full administrator workflow.
+In this section you will tour the administrator workflow.
 
 ---
 
@@ -460,26 +440,24 @@ Click **Create**. The new project appears in the list and is immediately ready f
 
 ---
 
-## Step 4C: Configure Resource Quotas
-
-Quotas prevent any single project from monopolizing cluster resources.
+## Step 4C: View Resource Quotas
 
 Click your new project to open its detail view, then click the **Quota** tab.
 
 ![Quota configuration tab](images/03-resource-manager/05-quota-tab.png)
 
-Set limits appropriate for a team of 3–5 data scientists:
+> **Note:** In this workshop environment, quota values are pre-configured by the cluster admin and are read-only for your account. You can view the current limits but will not be able to modify them.
 
-| Resource | Example Value | Notes |
-|---|---|---|
-| **GPU Limit** | 4 | Hard ceiling — the project cannot use more than this many GPUs simultaneously |
-| **CPU Limit** | 16 | Maximum CPU cores the project can consume |
-| **Memory Limit** | 64Gi | Maximum RAM |
-| **Storage** | 500Gi | Total PVC storage available |
+The quota tab shows limits set for the project:
 
-> **Understanding quota enforcement:** You may notice the Resource Manager UI describes quotas as a "guaranteed allocation" and notes that workloads may temporarily exceed quota when additional resources are available — this language describes *quota bursting*, where a project can use slack cluster capacity beyond its set limit. The governance ceiling works alongside this: **when the cluster is under contention, no project is allowed to exceed its quota and displace another team's workloads.** Bursting is opportunistic, not guaranteed. The quota you set here is both the floor (your team is assured at least this much) and the enforced ceiling under contention — this is what prevents any single project from monopolizing shared cluster resources at the expense of others.
+| Resource | What It Controls |
+|---|---|
+| **GPU Limit** | Hard ceiling on simultaneous GPU usage — prevents any one team from monopolizing cluster GPUs |
+| **CPU Limit** | Maximum CPU cores the project can consume |
+| **Memory Limit** | Maximum RAM |
+| **Storage** | Total PVC storage available |
 
-Click **Save Quotas** to apply.
+> **Understanding quota enforcement:** The platform supports *quota bursting* — a project can temporarily use slack cluster capacity beyond its set limit when additional resources are available. However, **when the cluster is under contention, no project is allowed to exceed its quota and displace another team's workloads.** The quota you see here is both the floor (your team is assured at least this much) and the enforced ceiling under contention.
 
 ---
 
@@ -518,27 +496,6 @@ Either way, the resulting secret can be mounted into workspaces and fine-tuning 
 
 ---
 
-## Step 4E: Add a Team Member
-
-Click the **Members** tab inside your project, then click **Add Member**.
-
-![Members/Users tab](images/03-resource-manager/09-users-tab.png)
-
-In the **Add Member** dialog:
-
-![Add member dialog](images/03-resource-manager/10-add-member-dialog.png)
-
-- Search for a user by name or email
-- Assign a **role**: `Viewer`, `Editor`, or `Admin`
-
-Click **Add**. The user now appears in the project's member list and can log into Workbench using their own credentials.
-
-![Member added confirmation](images/03-resource-manager/11-member-added.png)
-
-> **Role summary:** Viewers can see deployments and metrics. Editors can deploy models and launch workspaces. Admins can manage quotas and add members. The platform enforces these roles automatically — no manual kubeconfig management needed.
-
----
-
 ## Workshop Complete
 
 You have now experienced the full administrative and operational lifecycle of the AMD Enterprise AI Software Stack:
@@ -549,10 +506,7 @@ You have now experienced the full administrative and operational lifecycle of th
 | Configured autoscaling | Dynamic resource efficiency under variable load |
 | Fine-tuned a model on custom data | Domain adaptation without ML engineering expertise |
 | Ran a benchmark with vLLM bench serve (optional) | Quantified SLO validation before production commitment |
-| Launched a VSCode workspace inside the cluster | Secure, persistent compute for developers — no local GPU needed |
-| Created a project and set quotas in Resource Manager | IT governance and multi-team resource control |
-| Added secrets and storage credentials | Secure credential management without exposing raw tokens |
-| Added team members with role-based access | Controlled self-service — teams deploy without IT tickets |
+| Toured Resource Manager — projects, quotas, and secrets | IT governance and multi-team resource control |
 
 **Next steps:**
 - Explore additional workspace types (JupyterLab, ComfyUI) for different team workflows
