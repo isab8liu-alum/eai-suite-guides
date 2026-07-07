@@ -10,7 +10,7 @@
 
 ## System Setup: Preparing Your Laptop
 
-This workshop runs entirely in the browser — no local commands are required. All benchmarking in Part 3 is done inside an in-cluster VSCode workspace (which is Linux-based), so your laptop's operating system does not affect any workshop commands.
+This workshop runs entirely in the browser — no local commands are required. All benchmarking in Part 2 is done inside an in-cluster VSCode workspace (which is Linux-based), so your laptop's operating system does not affect any workshop commands.
 
 That said, if your facilitator asks you to run any setup steps locally (e.g., copying a kubeconfig), use a proper shell for your OS:
 
@@ -35,11 +35,11 @@ Open **Terminal** (Applications → Utilities → Terminal). No additional tools
 This workshop takes you deep into the administrative and operational capabilities of the AMD Enterprise AI Software Stack through its two main management interfaces.
 
 You will:
-1. **Explore AMD Resource Manager** — create a project, configure quotas, manage secrets and storage, and add team members
-2. **Deploy and manage AI models** through AMD AI Workbench — observe live inference metrics, configure autoscaling, and chat with a running model
-3. **Launch a VSCode workspace** inside the platform and run a benchmark against your deployed model using `vllm bench serve`
-4. **Fine-tune a model on your own data** — upload a training dataset and start a supervised fine-tuning job through the Workbench UI
-5. **(Bonus)** Tour the ComfyUI workspace for AI image generation
+1. **Deploy and manage AI models** through AMD AI Workbench — observe live inference metrics, configure autoscaling, and chat with a running model
+2. **Fine-tune a model on your own data** — upload a training dataset and start a supervised fine-tuning job through the Workbench UI
+3. **(Bonus)** Tour the ComfyUI workspace for AI image generation
+4. **(Optional)** **Benchmark your model** with `vllm bench serve` — launch a VSCode workspace inside the platform and run a load test against your deployed model
+5. **(Optional)** **Explore AMD Resource Manager** — create a project, configure quotas, manage secrets and storage, and add team members
 
 No Kubernetes, terminal, or ML engineering experience required.
 
@@ -49,163 +49,24 @@ No Kubernetes, terminal, or ML engineering experience required.
 
 | Component | What It Does | Who Uses It |
 |---|---|---|
-| **AMD Resource Manager** | Admin UI for clusters, projects, quotas, users, secrets, and storage | IT admins and platform operators |
 | **AMD AI Workbench** | Self-service UI for deploying models, running workspaces, and fine-tuning | Data scientists, developers, and engineers |
 | **AIMs** (AI Inference Microservices) | Pre-packaged AMD-optimized model servers | Deployed and managed through both UIs |
 | **Workspaces** | JupyterLab, VSCode, or ComfyUI environments that run inside the cluster | End users running experiments or tools |
+| **AMD Resource Manager** | Admin UI for clusters, projects, quotas, users, secrets, and storage | IT admins and platform operators |
 
 ---
 
-# Part 1: AMD Resource Manager — Platform Administration (15 minutes)
-
-## Why Resource Manager?
-
-In enterprise environments, AI infrastructure is shared. Multiple teams — data science, engineering, product — all want access to GPUs. Without governance, one team can accidentally consume all cluster resources, leaving others blocked.
-
-**AMD Resource Manager** is the administrative control plane. It lets IT administrators:
-- Create isolated **projects** for each team or use case
-- Set **resource quotas** (GPU hours, memory, storage) per project
-- Manage **user access** and assign roles
-- Store and distribute **secrets** (API keys, model tokens) securely
-- Attach **persistent storage** for datasets and model artifacts
-
-In this section you will go through the full administrator workflow.
-
----
-
-## Step 1A: Log In to Resource Manager
-
-Open a browser and navigate to the Resource Manager URL provided by your facilitator:
-
-- Format: `https://airm.<your-domain>` or the IP-based URL on your workshop sheet
-
-Use the **admin credentials** your facilitator provided.
-
-![Resource Manager dashboard overview](images/03-resource-manager/01-dashboard-overview.png)
-
-The dashboard shows:
-- **Cluster-level resource utilization** — total GPU capacity, current usage, and available headroom
-- **Active projects** and their quota consumption
-- **System alerts** and recent events
-
-Click **View Config** (top right) to see cluster-level details such as node count, GPU type, and software versions.
-
-![Cluster config view](images/03-resource-manager/cluster_view_view_config.png)
-
----
-
-## Step 1B: Create a Project
-
-Projects are the primary isolation boundary. Each team or use case gets its own project with its own quota, users, secrets, and storage.
-
-Click **Projects** in the left sidebar, then click **Create Project**.
-
-![Projects page](images/03-resource-manager/02-projects-page.png)
-
-In the **Create Project** dialog:
-
-![Create Project dialog (empty)](images/03-resource-manager/03-create-project-dialog.png)
-
-Fill in:
-- **Project Name** — use your first name or team name (e.g., `workshop-yourname`)
-- **Description** — optional, but useful for multi-team environments
-
-![Create Project dialog (filled)](images/03-resource-manager/04-create-project-filled.png)
-
-Click **Create**. The new project appears in the list and is immediately ready for quota configuration.
-
----
-
-## Step 1C: Configure Resource Quotas
-
-Quotas prevent any single project from monopolizing cluster resources.
-
-Click your new project to open its detail view, then click the **Quota** tab.
-
-![Quota configuration tab](images/03-resource-manager/05-quota-tab.png)
-
-Set limits appropriate for a team of 3–5 data scientists:
-
-| Resource | Example Value | Notes |
-|---|---|---|
-| **GPU Limit** | 4 | Hard ceiling — the project cannot use more than this many GPUs simultaneously |
-| **CPU Limit** | 16 | Maximum CPU cores the project can consume |
-| **Memory Limit** | 64Gi | Maximum RAM |
-| **Storage** | 500Gi | Total PVC storage available |
-
-> **Understanding quota enforcement:** You may notice the Resource Manager UI describes quotas as a "guaranteed allocation" and notes that workloads may temporarily exceed quota when additional resources are available — this language describes *quota bursting*, where a project can use slack cluster capacity beyond its set limit. The governance ceiling works alongside this: **when the cluster is under contention, no project is allowed to exceed its quota and displace another team's workloads.** Bursting is opportunistic, not guaranteed. The quota you set here is both the floor (your team is assured at least this much) and the enforced ceiling under contention — this is what prevents any single project from monopolizing shared cluster resources at the expense of others.
-
-Click **Save Quotas** to apply.
-
----
-
-## Step 1D: Add a Secret
-
-Secrets allow you to securely distribute credentials — like a Hugging Face API token for downloading gated models — to all workloads in a project, without users ever seeing the raw token value.
-
-Click the **Secrets** tab inside your project, then click the **Add** dropdown.
-
-![Secrets tab with Add dropdown](images/03-resource-manager/06-secrets-tab-add-menu.png)
-
-Select **Hugging Face Token**. In the **Create Secret** dialog that appears:
-
-![Create secret dialog](images/03-resource-manager/07-assign-secret-dialog.png)
-
-- **Secret name** — a memorable label (e.g., `hf-token`)
-- **Token** — paste the Hugging Face token your facilitator provided
-
-Click **Create**. The secret is stored in the cluster's secret store — it will appear in Workbench's deployment panel whenever a gated model requires authentication.
-
-![Secret successfully created](images/03-resource-manager/08-secret-assigned.png)
-
-> **Security note:** Once saved, the token value is never shown again in the UI. Users in the project can _use_ the secret (it is injected as an environment variable into model containers) but cannot read the raw value.
-
-### Assigning a MinIO/S3 Storage Secret
-
-For teams that need to access shared dataset or model artifact buckets, you can also add object storage credentials. Click **Add** again and select **MinIO / S3 Compatible**.
-
-If you are **creating a new MinIO secret**, the dialog prompts you for a secret name, bucket endpoint, access key, and secret key. Fill in the fields and click **Create** — the credential is stored and available to any workload in the project.
-
-If the MinIO credentials already exist in the cluster (created by an admin at cluster setup), you will instead see an **Assign Existing Secret** panel where you select the pre-created credential from a list and assign it to your project. The screenshot below shows this workflow:
-
-![Assign MinIO secret to project](images/03-resource-manager/07-assign-secret-minio.png)
-
-Either way, the resulting secret can be mounted into workspaces and fine-tuning jobs as environment variables — users access the bucket without ever handling the raw credentials.
-
----
-
-## Step 1E: Add a Team Member
-
-Click the **Members** tab inside your project, then click **Add Member**.
-
-![Members/Users tab](images/03-resource-manager/09-users-tab.png)
-
-In the **Add Member** dialog:
-
-![Add member dialog](images/03-resource-manager/10-add-member-dialog.png)
-
-- Search for a user by name or email
-- Assign a **role**: `Viewer`, `Editor`, or `Admin`
-
-Click **Add**. The user now appears in the project's member list and can log into Workbench using their own credentials.
-
-![Member added confirmation](images/03-resource-manager/11-member-added.png)
-
-> **Role summary:** Viewers can see deployments and metrics. Editors can deploy models and launch workspaces. Admins can manage quotas and add members. The platform enforces these roles automatically — no manual kubeconfig management needed.
-
----
-
-# Part 2: AMD AI Workbench — Model Deployment and Autoscaling (20 minutes)
+# Part 1: AMD AI Workbench — Model Deployment and Autoscaling (20 minutes)
 
 ## Why Workbench?
 
-Once IT has set up projects and quotas in Resource Manager, data scientists and developers use **AMD AI Workbench** to actually run their AI workloads — without needing to know Kubernetes or infrastructure management.
+**AMD AI Workbench** is the self-service portal for AI practitioners — data scientists, developers, and engineers who need to deploy models, run experiments, and collaborate on AI workloads without needing Kubernetes or infrastructure expertise.
 
 ---
 
-## Step 2A: Log In to Workbench and Select Your Project
+## Step 1A: Log In to Workbench and Select Your Project
 
-Open a new browser tab and navigate to the AI Workbench URL:
+Open a browser and navigate to the AI Workbench URL:
 
 - Format: `https://airmui.<your-domain>` or the IP-based URL on your workshop sheet
 
@@ -215,7 +76,7 @@ Use the **user credentials** your facilitator provided. After login, confirm you
 
 ---
 
-## Step 2B: Deploy an AI Model
+## Step 1B: Deploy an AI Model
 
 ### Browse the Model Catalog
 
@@ -251,7 +112,7 @@ Click **Deploy**.
 
 ---
 
-## Step 2C: Monitor Your Model — Live Inference Metrics
+## Step 1C: Monitor Your Model — Live Inference Metrics
 
 ### Watch the Deployment Start
 
@@ -284,7 +145,7 @@ From the model details page, click **Chat**. Ask a question and observe:
 
 ---
 
-## Step 2D: Configure Autoscaling
+## Step 1D: Configure Autoscaling
 
 Autoscaling allows the platform to automatically increase the number of model replicas under high load, and scale back down when traffic drops — ensuring performance without wasting idle GPU resources.
 
@@ -301,11 +162,11 @@ Configure the autoscaling policy:
 
 > **How autoscaling interacts with quotas:** If your project has a GPU quota of 4 and your model needs 1 GPU per replica, autoscaling can create up to 4 replicas. Requests for additional replicas beyond the quota will queue rather than fail.
 
-Save the autoscaling configuration. You can validate it later using the `vllm bench serve` load test in Part 3.
+Save the autoscaling configuration. You can validate it later using the `vllm bench serve` load test in Part 3 (Optional).
 
 ---
 
-## Step 2E: Explore Workspaces
+## Step 1E: Explore Workspaces
 
 Workspaces are interactive compute environments — JupyterLab, VSCode, or ComfyUI — that run inside the cluster alongside your models. They give users a secure, pre-configured development environment without needing their own GPU hardware.
 
@@ -313,7 +174,7 @@ Click **Workspaces** in the left sidebar.
 
 ![Workspaces view](images/04-workbench/workspaces_view.png)
 
-You will see available workspace types. For this workshop, you need the **VSCode** workspace.
+You will see available workspace types. If you plan to do the optional benchmarking section (Part 3), you will need the **VSCode** workspace — you can launch it now or return to this step later.
 
 ### Launch a VSCode Workspace
 
@@ -336,7 +197,103 @@ Once **Running**, click **Open** to launch VSCode in your browser.
 
 ---
 
-# Part 3: Benchmarking with vLLM Bench Serve in VSCode (10 minutes)
+# Part 2: Fine-Tune a Model on Your Own Data (15 minutes)
+
+Fine-tuning adapts a general-purpose model to your domain — your terminology, your writing style, your proprietary data. This turns a capable but generic model into one that understands your organization's context and produces outputs that match your standards.
+
+**AMD AI Workbench makes fine-tuning a UI workflow** — no Python, no training scripts, no GPU configuration required. You upload a dataset, select a base model, and the platform handles the rest.
+
+---
+
+## Step 2A: Upload Training Data
+
+Your training data needs to be in **JSONL format** — one JSON object per line, where each object contains a prompt/response pair. A sample dataset is provided by your facilitator at:
+
+```
+https://github.com/isab8liu-alum/eai-suite-guides/blob/main/dataset/sft-demo-data.jsonl
+```
+
+In AMD AI Workbench:
+
+1. Click **Datasets** in the left sidebar
+2. Click **Upload**
+
+![Dataset upload interface](images/04-workbench/uploading_dataset_finetuning.png)
+
+3. Fill in:
+   - **Dataset name** — e.g., `workshop-demo-data`
+   - **Data type** — `.jsonl` / instruction fine-tuning format
+   - **Description** — optional
+4. Select your file and click **Upload**
+
+> **What is in the dataset?** The sample dataset contains instruction-response pairs in the standard SFT (Supervised Fine-Tuning) format. Each entry looks like:
+> ```json
+> {"messages": [{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]}
+> ```
+> Your production dataset would contain examples of the exact responses you want the model to learn — clinical notes, customer service replies, domain-specific Q&A, and so on.
+
+---
+
+## Step 2B: Start a Fine-Tuning Job
+
+1. Click **Models** in the left sidebar → switch to the **Custom Models** tab
+
+![Custom Models view](images/04-workbench/workbench_custom_models_view.png)
+
+2. Click **Fine-tune model**
+
+![Fine-tune model configuration panel](images/04-workbench/finetune_model_menu.png)
+
+3. Configure the fine-tuning job:
+
+| Setting | Value | Notes |
+|---|---|---|
+| **Base model** | Select the model you deployed in Part 1 | The starting point — your dataset teaches it new behavior |
+| **Dataset** | `workshop-demo-data` | The training data you uploaded in Step 2A |
+| **Method** | LoRA (Low-Rank Adaptation) | Efficient fine-tuning — adapts the model without retraining all weights |
+| **Epochs** | 3 | Number of passes through the training data — leave default for the workshop |
+| **Learning rate** | 2e-4 | Leave default for the workshop |
+
+4. Click **Start training**
+
+The fine-tuning job appears in **Workloads** with a **Training** status badge. You can monitor its progress — loss curves and training metrics stream in as it runs.
+
+> **How long does it take?** With a small dataset on 1 GPU, a 3-epoch job typically finishes in 5–15 minutes. Larger datasets or more epochs take proportionally longer. Resource Manager quotas apply — the training job consumes GPU resources from your project's quota while running.
+
+---
+
+## Step 2C: Deploy and Test Your Fine-Tuned Model
+
+Once training completes, the custom model appears in the **Custom Models** tab.
+
+1. Click **Deploy** on your fine-tuned model — it deploys exactly like any other AIM
+2. Wait for status to show **Running**
+3. Click **Chat** and ask it questions from the training domain
+
+Compare the fine-tuned model's responses against the base model from Part 1. The fine-tuned model should show noticeably better alignment with your domain terminology and the response style captured in the training data.
+
+> **What LoRA produces:** Fine-tuning with LoRA creates a small set of adapter weights — typically 1–5% the size of the base model — that encode the domain-specific behavior you trained. These adapters are stored separately and layered on top of the base model at inference time. The result is a model that retains general capability while applying your domain knowledge precisely where it matters.
+
+---
+
+## Bonus: ComfyUI Workspace for AI Image Generation
+
+If time permits, explore the **ComfyUI** workspace — a node-based visual tool for AI image generation workflows.
+
+In AMD AI Workbench, click **Workspaces** and look for the **ComfyUI** workspace type. Launch it and click **Open** once it is Running.
+
+ComfyUI provides a canvas-based interface for building image generation pipelines:
+- Connect model loaders, samplers, VAE decoders, and output nodes visually
+- Load different checkpoints and LoRA adapters without editing configuration files
+- Build and save reusable workflows for text-to-image, image-to-image, and inpainting
+
+> **Why ComfyUI on AMD?** ComfyUI runs natively on AMD GPUs via ROCm — the same hardware stack powering your LLM deployments. Your organization can run image generation alongside language models on the same cluster, managed through the same Resource Manager quotas and Workbench UI.
+
+---
+
+# Part 3: Benchmarking with vLLM Bench Serve in VSCode (Optional)
+
+> **This section is optional.** The core workshop (Parts 1–2) does not require it. Come back here if time allows, or explore it after the session to quantify your model's performance under realistic load.
 
 ## Why Benchmark?
 
@@ -352,7 +309,7 @@ Deploying a model is only the first step. Before committing to a production conf
 
 ## Step 3A: Find Your Model's Internal Endpoint
 
-You need the cluster-internal service URL for the model you deployed in Part 2.
+You need the cluster-internal service URL for the model you deployed in Part 1.
 
 In AMD AI Workbench:
 1. Click **Models** → click your running model
@@ -365,7 +322,7 @@ Keep this URL — you will use it in the next step.
 
 ## Step 3B: Open a Terminal in Your VSCode Workspace
 
-Switch to the VSCode workspace tab you opened in Step 2E.
+Switch to the VSCode workspace tab you opened in Step 1E (or launch one now if you skipped it).
 
 In VSCode, open a terminal: **Terminal → New Terminal** (or `` Ctrl+` ``).
 
@@ -441,97 +398,144 @@ Inter-Token Latency (ms):
 
 ---
 
-# Part 4: Fine-Tune a Model on Your Own Data (Bonus — if time allows)
+# Part 4: AMD Resource Manager — Platform Administration (Optional)
 
-Fine-tuning adapts a general-purpose model to your domain — your terminology, your writing style, your proprietary data. This turns a capable but generic model into one that understands your organization's context and produces outputs that match your standards.
+> **This section is optional.** The core workshop (Parts 1–2) does not require it. Come back here if time allows, or explore it after the session to see how the platform's IT governance layer works end-to-end.
 
-**AMD AI Workbench makes fine-tuning a UI workflow** — no Python, no training scripts, no GPU configuration required. You upload a dataset, select a base model, and the platform handles the rest.
+## Why Resource Manager?
 
----
+In enterprise environments, AI infrastructure is shared. Multiple teams — data science, engineering, product — all want access to GPUs. Without governance, one team can accidentally consume all cluster resources, leaving others blocked.
 
-## Step 4A: Upload Training Data
+**AMD Resource Manager** is the administrative control plane. It lets IT administrators:
+- Create isolated **projects** for each team or use case
+- Set **resource quotas** (GPU hours, memory, storage) per project
+- Manage **user access** and assign roles
+- Store and distribute **secrets** (API keys, model tokens) securely
+- Attach **persistent storage** for datasets and model artifacts
 
-Your training data needs to be in **JSONL format** — one JSON object per line, where each object contains a prompt/response pair. A sample dataset is provided by your facilitator at:
-
-```
-https://github.com/isab8liu-alum/eai-suite-guides/blob/main/dataset/sft-demo-data.jsonl
-```
-
-In AMD AI Workbench:
-
-1. Click **Datasets** in the left sidebar
-2. Click **Upload**
-
-![Dataset upload interface](images/04-workbench/uploading_dataset_finetuning.png)
-
-3. Fill in:
-   - **Dataset name** — e.g., `workshop-demo-data`
-   - **Data type** — `.jsonl` / instruction fine-tuning format
-   - **Description** — optional
-4. Select your file and click **Upload**
-
-> **What is in the dataset?** The sample dataset contains instruction-response pairs in the standard SFT (Supervised Fine-Tuning) format. Each entry looks like:
-> ```json
-> {"messages": [{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]}
-> ```
-> Your production dataset would contain examples of the exact responses you want the model to learn — clinical notes, customer service replies, domain-specific Q&A, and so on.
+In this section you will go through the full administrator workflow.
 
 ---
 
-## Step 4B: Start a Fine-Tuning Job
+## Step 4A: Log In to Resource Manager
 
-1. Click **Models** in the left sidebar → switch to the **Custom Models** tab
+Open a browser and navigate to the Resource Manager URL provided by your facilitator:
 
-![Custom Models view](images/04-workbench/workbench_custom_models_view.png)
+- Format: `https://airm.<your-domain>` or the IP-based URL on your workshop sheet
 
-2. Click **Fine-tune model**
+Use the **admin credentials** your facilitator provided.
 
-![Fine-tune model configuration panel](images/04-workbench/finetune_model_menu.png)
+![Resource Manager dashboard overview](images/03-resource-manager/01-dashboard-overview.png)
 
-3. Configure the fine-tuning job:
+The dashboard shows:
+- **Cluster-level resource utilization** — total GPU capacity, current usage, and available headroom
+- **Active projects** and their quota consumption
+- **System alerts** and recent events
 
-| Setting | Value | Notes |
+Click **View Config** (top right) to see cluster-level details such as node count, GPU type, and software versions.
+
+![Cluster config view](images/03-resource-manager/cluster_view_view_config.png)
+
+---
+
+## Step 4B: Create a Project
+
+Projects are the primary isolation boundary. Each team or use case gets its own project with its own quota, users, secrets, and storage.
+
+Click **Projects** in the left sidebar, then click **Create Project**.
+
+![Projects page](images/03-resource-manager/02-projects-page.png)
+
+In the **Create Project** dialog:
+
+![Create Project dialog (empty)](images/03-resource-manager/03-create-project-dialog.png)
+
+Fill in:
+- **Project Name** — use your first name or team name (e.g., `workshop-yourname`)
+- **Description** — optional, but useful for multi-team environments
+
+![Create Project dialog (filled)](images/03-resource-manager/04-create-project-filled.png)
+
+Click **Create**. The new project appears in the list and is immediately ready for quota configuration.
+
+---
+
+## Step 4C: Configure Resource Quotas
+
+Quotas prevent any single project from monopolizing cluster resources.
+
+Click your new project to open its detail view, then click the **Quota** tab.
+
+![Quota configuration tab](images/03-resource-manager/05-quota-tab.png)
+
+Set limits appropriate for a team of 3–5 data scientists:
+
+| Resource | Example Value | Notes |
 |---|---|---|
-| **Base model** | Select the model you deployed in Part 2 | The starting point — your dataset teaches it new behavior |
-| **Dataset** | `workshop-demo-data` | The training data you uploaded in Step 4A |
-| **Method** | LoRA (Low-Rank Adaptation) | Efficient fine-tuning — adapts the model without retraining all weights |
-| **Epochs** | 3 | Number of passes through the training data — leave default for the workshop |
-| **Learning rate** | 2e-4 | Leave default for the workshop |
+| **GPU Limit** | 4 | Hard ceiling — the project cannot use more than this many GPUs simultaneously |
+| **CPU Limit** | 16 | Maximum CPU cores the project can consume |
+| **Memory Limit** | 64Gi | Maximum RAM |
+| **Storage** | 500Gi | Total PVC storage available |
 
-4. Click **Start training**
+> **Understanding quota enforcement:** You may notice the Resource Manager UI describes quotas as a "guaranteed allocation" and notes that workloads may temporarily exceed quota when additional resources are available — this language describes *quota bursting*, where a project can use slack cluster capacity beyond its set limit. The governance ceiling works alongside this: **when the cluster is under contention, no project is allowed to exceed its quota and displace another team's workloads.** Bursting is opportunistic, not guaranteed. The quota you set here is both the floor (your team is assured at least this much) and the enforced ceiling under contention — this is what prevents any single project from monopolizing shared cluster resources at the expense of others.
 
-The fine-tuning job appears in **Workloads** with a **Training** status badge. You can monitor its progress — loss curves and training metrics stream in as it runs.
-
-> **How long does it take?** With a small dataset on 1 GPU, a 3-epoch job typically finishes in 5–15 minutes. Larger datasets or more epochs take proportionally longer. Resource Manager quotas apply — the training job consumes GPU resources from your project's quota while running.
+Click **Save Quotas** to apply.
 
 ---
 
-## Step 4C: Deploy and Test Your Fine-Tuned Model
+## Step 4D: Add a Secret
 
-Once training completes, the custom model appears in the **Custom Models** tab.
+Secrets allow you to securely distribute credentials — like a Hugging Face API token for downloading gated models — to all workloads in a project, without users ever seeing the raw token value.
 
-1. Click **Deploy** on your fine-tuned model — it deploys exactly like any other AIM
-2. Wait for status to show **Running**
-3. Click **Chat** and ask it questions from the training domain
+Click the **Secrets** tab inside your project, then click the **Add** dropdown.
 
-Compare the fine-tuned model's responses against the base model from Part 2. The fine-tuned model should show noticeably better alignment with your domain terminology and the response style captured in the training data.
+![Secrets tab with Add dropdown](images/03-resource-manager/06-secrets-tab-add-menu.png)
 
-> **What LoRA produces:** Fine-tuning with LoRA creates a small set of adapter weights — typically 1–5% the size of the base model — that encode the domain-specific behavior you trained. These adapters are stored separately and layered on top of the base model at inference time. The result is a model that retains general capability while applying your domain knowledge precisely where it matters.
+Select **Hugging Face Token**. In the **Create Secret** dialog that appears:
+
+![Create secret dialog](images/03-resource-manager/07-assign-secret-dialog.png)
+
+- **Secret name** — a memorable label (e.g., `hf-token`)
+- **Token** — paste the Hugging Face token your facilitator provided
+
+Click **Create**. The secret is stored in the cluster's secret store — it will appear in Workbench's deployment panel whenever a gated model requires authentication.
+
+![Secret successfully created](images/03-resource-manager/08-secret-assigned.png)
+
+> **Security note:** Once saved, the token value is never shown again in the UI. Users in the project can _use_ the secret (it is injected as an environment variable into model containers) but cannot read the raw value.
+
+### Assigning a MinIO/S3 Storage Secret
+
+For teams that need to access shared dataset or model artifact buckets, you can also add object storage credentials. Click **Add** again and select **MinIO / S3 Compatible**.
+
+If you are **creating a new MinIO secret**, the dialog prompts you for a secret name, bucket endpoint, access key, and secret key. Fill in the fields and click **Create** — the credential is stored and available to any workload in the project.
+
+If the MinIO credentials already exist in the cluster (created by an admin at cluster setup), you will instead see an **Assign Existing Secret** panel where you select the pre-created credential from a list and assign it to your project. The screenshot below shows this workflow:
+
+![Assign MinIO secret to project](images/03-resource-manager/07-assign-secret-minio.png)
+
+Either way, the resulting secret can be mounted into workspaces and fine-tuning jobs as environment variables — users access the bucket without ever handling the raw credentials.
 
 ---
 
-## Bonus: ComfyUI Workspace for AI Image Generation
+## Step 4E: Add a Team Member
 
-If time permits, explore the **ComfyUI** workspace — a node-based visual tool for AI image generation workflows.
+Click the **Members** tab inside your project, then click **Add Member**.
 
-In AMD AI Workbench, click **Workspaces** and look for the **ComfyUI** workspace type. Launch it and click **Open** once it is Running.
+![Members/Users tab](images/03-resource-manager/09-users-tab.png)
 
-ComfyUI provides a canvas-based interface for building image generation pipelines:
-- Connect model loaders, samplers, VAE decoders, and output nodes visually
-- Load different checkpoints and LoRA adapters without editing configuration files
-- Build and save reusable workflows for text-to-image, image-to-image, and inpainting
+In the **Add Member** dialog:
 
-> **Why ComfyUI on AMD?** ComfyUI runs natively on AMD GPUs via ROCm — the same hardware stack powering your LLM deployments. Your organization can run image generation alongside language models on the same cluster, managed through the same Resource Manager quotas and Workbench UI.
+![Add member dialog](images/03-resource-manager/10-add-member-dialog.png)
+
+- Search for a user by name or email
+- Assign a **role**: `Viewer`, `Editor`, or `Admin`
+
+Click **Add**. The user now appears in the project's member list and can log into Workbench using their own credentials.
+
+![Member added confirmation](images/03-resource-manager/11-member-added.png)
+
+> **Role summary:** Viewers can see deployments and metrics. Editors can deploy models and launch workspaces. Admins can manage quotas and add members. The platform enforces these roles automatically — no manual kubeconfig management needed.
 
 ---
 
@@ -541,14 +545,14 @@ You have now experienced the full administrative and operational lifecycle of th
 
 | What You Did | What It Demonstrates |
 |---|---|
+| Deployed an AI model and observed live metrics | Production visibility from the first deployment |
+| Configured autoscaling | Dynamic resource efficiency under variable load |
+| Fine-tuned a model on custom data | Domain adaptation without ML engineering expertise |
+| Ran a benchmark with vLLM bench serve (optional) | Quantified SLO validation before production commitment |
+| Launched a VSCode workspace inside the cluster | Secure, persistent compute for developers — no local GPU needed |
 | Created a project and set quotas in Resource Manager | IT governance and multi-team resource control |
 | Added secrets and storage credentials | Secure credential management without exposing raw tokens |
 | Added team members with role-based access | Controlled self-service — teams deploy without IT tickets |
-| Deployed an AI model and observed live metrics | Production visibility from the first deployment |
-| Configured autoscaling | Dynamic resource efficiency under variable load |
-| Launched a VSCode workspace inside the cluster | Secure, persistent compute for developers — no local GPU needed |
-| Ran a benchmark with vLLM bench serve | Quantified SLO validation before production commitment |
-| Fine-tuned a model on custom data | Domain adaptation without ML engineering expertise |
 
 **Next steps:**
 - Explore additional workspace types (JupyterLab, ComfyUI) for different team workflows
