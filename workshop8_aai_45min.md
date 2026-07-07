@@ -1,5 +1,5 @@
 # Advancing AI Day Workshop
-### AMD Enterprise AI Software Stack — Workbench & Resource Manager Deep Dive (45 Minutes)
+### AMD Enterprise AI Software Stack — Hands On Labs (45 Minutes)
 
 **Audience:** Enterprise IT administrators, platform engineers, and team leads evaluating the AMD AI platform  
 **Prerequisites:** A browser, the workshop credentials provided by your facilitator  

@@ -1,5 +1,5 @@
 # Advancing AI Day Workshop
-### AMD Enterprise AI Software Stack — Hands-On Lab (45 Minutes)
+### AMD Enterprise AI - AIMS and Blueprints — Hands-On Lab (45 Minutes)
 
 **Audience:** Enterprise evaluators and developers new to the AMD AI platform  
 **Prerequisites:** A laptop (Linux, macOS, or Windows with WSL), a terminal, and the workshop credentials provided by your facilitator  
