@@ -42,7 +42,7 @@ The tools below are installed during Step 1A. For reference:
 
 ## What You Will Build Today
 
-In this workshop you will experience the AMD Enterprise AI Software Stack end-to-end — from deploying a complete AI application to customizing and extending it.
+In this workshop you will experience the AMD Inference Microservices (AIMs) and Solution Blueprints — from deploying a healthcare focused AI application to customizing and extending it.
 
 You will:
 1. **Deploy a complete medical imaging AI application** using a Solution Blueprint in a single command

@@ -147,22 +147,43 @@ From the model details page, click **Chat**. Ask a question and observe:
 
 ## Step 1D: Configure Autoscaling
 
-Autoscaling allows the platform to automatically increase the number of model replicas under high load, and scale back down when traffic drops — ensuring performance without wasting idle GPU resources.
+Autoscaling automatically adjusts the number of running model replicas based on real-time demand — scaling up during traffic spikes and back down during low usage, so you only consume GPU resources when you need them.
 
-From the model details page, click **Autoscale** (or navigate to **Settings** on the deployment).
+> **Important:** Autoscaling must be enabled **at deployment time** — you cannot enable it on an existing deployment. If it was enabled at deploy time, you can update its parameters later via **Settings** on the workload detail page.
 
-Configure the autoscaling policy:
+### Enable Autoscaling at Deploy Time
 
-| Setting | Recommended Value | Notes |
+When deploying a model (Step 1B), locate the **Autoscaling** section in the deployment drawer and toggle **Enable autoscaling** on:
+
+![Autoscaling configuration panel](images/04-workbench/autoscaling.png)
+
+Configure the following parameters:
+
+| Parameter | Recommended Value | What It Does |
 |---|---|---|
-| **Min replicas** | 1 | Always keep at least one replica running |
-| **Max replicas** | 3 | Upper bound — constrained by your project's GPU quota |
-| **Scale-up trigger** | TTFT > 500ms for 60s | Adds a replica when latency degrades |
-| **Scale-down trigger** | Requests/s < 1 for 300s | Removes idle replicas after 5 minutes of low traffic |
+| **Min replicas** | 1 | Minimum replicas always running — ensures baseline capacity even at zero traffic |
+| **Max replicas** | 3 | Upper bound — prevents runaway resource use; constrained by your project's GPU quota |
+| **Scaling metric** | Running requests (default) | The vLLM signal used to drive scaling decisions |
+| **Aggregation** | Average (default) | How metric values are combined across all running pods |
+| **Target type** | Absolute value (default) | How the target threshold is interpreted |
+| **Target value** | 10 (default) | Scale up when total running requests across all pods exceed this number |
 
-> **How autoscaling interacts with quotas:** If your project has a GPU quota of 4 and your model needs 1 GPU per replica, autoscaling can create up to 4 replicas. Requests for additional replicas beyond the quota will queue rather than fail.
+### How It Works
 
-Save the autoscaling configuration. You can validate it later using the `vllm bench serve` load test in Part 3 (Optional).
+- The platform evaluates the scaling metric every **30 seconds**
+- **Scale-up:** When demand exceeds your target threshold, additional replicas are added (up to your configured maximum)
+- **Scale-down:** When demand drops below the threshold and stays low through a **5-minute cooling period**, replicas are removed (down to your configured minimum) — the cooldown prevents flapping
+
+### Scaling Metric Options
+
+| Metric | When to Use |
+|---|---|
+| **Running requests** (default) | Stable, reactive scaling based on active load — good for most workloads |
+| **Waiting requests** | Proactive scaling that reacts before latency degrades — triggers on queue buildup before response times increase |
+
+> **How autoscaling interacts with quotas:** Autoscaling scales within your project's GPU quota. If your quota allows 4 GPUs and each replica uses 1, autoscaling can create up to 4 replicas. When autoscaling borrows resources beyond a project's guaranteed quota, those pods may be preempted if other projects reclaim their allocation.
+
+You can validate autoscaling behavior later using the `vllm bench serve` load test in Part 3 (Optional) — increase concurrency and watch the replica count change in real time in the Workloads tab.
 
 ---
 
