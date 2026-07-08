@@ -80,7 +80,7 @@ Use the **user credentials** your facilitator provided. After login, confirm you
 
 ### Browse the Model Catalog
 
-Click **Models** in the left sidebar. You will see a catalog of available AIMs — AMD-packaged model servers for a wide range of model families (Llama, Mistral, Phi, Whisper, and more).
+Click **Models** in the left sidebar. You will see a catalog of available AIMs — AMD-packaged model servers for a wide range of model families (Llama, Mistral, Gemma, Deepseek and more).
 
 ![AI Workbench model catalog](images/04-workbench/01-models-catalog.png)
 
@@ -88,7 +88,7 @@ Each card shows the model name, size, and family. AMD has pre-configured the ser
 
 ### Deploy Your Model
 
-1. Find the model your facilitator recommends (e.g., **Llama 3.1 8B**)
+1. Find the model your facilitator recommends (e.g., **GPT-OSS-20B**)
 2. Click the **three-dot menu (⋮)** on the model card
 3. Select **Deploy**
 
@@ -126,15 +126,15 @@ Wait for the status to change to **Running**.
 
 Once running, click the model name or **Open Details** to see the real-time metrics dashboard:
 
-| Metric | What It Tells You |
+| SLA Metric | What It Tells You |
 |---|---|
-| **Requests/second** | Current inference load on the model |
+| **Inference Requests** | Current inference load on the model |
 | **Time to First Token (TTFT)** | Latency from request submission to first token generated |
 | **Throughput (tokens/sec)** | Total generation rate across all concurrent requests |
-| **SLO Compliance** | Whether the model is meeting its Service Level Objective targets |
+| **End-to-end latency** | Total time from request submission to the complete response being generated |
 | **GPU Utilization** | Hardware utilization — helps right-size the deployment |
 
-> **Why do SLOs matter?** Enterprise applications commit to response time guarantees. A customer-facing AI assistant might require TTFT < 500ms. The SLO compliance indicator tells you, at a glance, whether the current deployment is meeting that target — before any users complain.
+> **Why do Metrics matter?** Enterprise applications commit to response time guarantees. For example, a customer-facing AI assistant might require TTFT < 500ms.
 
 ### Chat with Your Model
 
@@ -243,20 +243,6 @@ Compare the fine-tuned model's responses against the base model from Part 1. The
 
 > **What LoRA produces:** Fine-tuning with LoRA creates a small set of adapter weights — typically 1–5% the size of the base model — that encode the domain-specific behavior you trained. These adapters are stored separately and layered on top of the base model at inference time. The result is a model that retains general capability while applying your domain knowledge precisely where it matters.
 
----
-
-## Bonus: ComfyUI Workspace for AI Image Generation
-
-If time permits, explore the **ComfyUI** workspace — a node-based visual tool for AI image generation workflows.
-
-In AMD AI Workbench, click **Workspaces** and look for the **ComfyUI** workspace type. Launch it and click **Open** once it is Running.
-
-ComfyUI provides a canvas-based interface for building image generation pipelines:
-- Connect model loaders, samplers, VAE decoders, and output nodes visually
-- Load different checkpoints and LoRA adapters without editing configuration files
-- Build and save reusable workflows for text-to-image, image-to-image, and inpainting
-
-> **Why ComfyUI on AMD?** ComfyUI runs natively on AMD GPUs via ROCm — the same hardware stack powering your LLM deployments. Your organization can run image generation alongside language models on the same cluster, managed through the same Resource Manager quotas and Workbench UI.
 
 ---
 
@@ -393,7 +379,7 @@ In enterprise environments, AI infrastructure is shared. Multiple teams — data
 - Store and distribute **secrets** (API keys, model tokens) securely
 - Attach **persistent storage** for datasets and model artifacts
 
-In this section you will tour the administrator workflow.
+In this section you will tour the user workflow. Your instructor will also demo the administrator workflow
 
 ---
 
@@ -403,7 +389,7 @@ Open a browser and navigate to the Resource Manager URL provided by your facilit
 
 - Format: `https://airm.<your-domain>` or the IP-based URL on your workshop sheet
 
-Use the **admin credentials** your facilitator provided.
+Use the **login credentials** your facilitator provided.
 
 ![Resource Manager dashboard overview](images/03-resource-manager/01-dashboard-overview.png)
 
@@ -461,7 +447,7 @@ The quota tab shows limits set for the project:
 
 ---
 
-## Step 4D: Add a Secret
+## Step 4D: Add a Secret 
 
 Secrets allow you to securely distribute credentials — like a Hugging Face API token for downloading gated models — to all workloads in a project, without users ever seeing the raw token value.
 
