@@ -68,7 +68,9 @@ No Kubernetes, terminal, or ML engineering experience required.
 
 Open a browser and navigate to the AI Workbench URL:
 
-- Format: `https://airmui.<your-domain>` or the IP-based URL on your workshop sheet
+- Format: `https://aiwbui.<your-domain>` or the IP-based URL on your workshop sheet
+ <!-- TODO update url This comment will not appear in the rendered Markdown -->
+
 
 Use the **user credentials** your facilitator provided. After login, confirm you are in the correct project by checking the project name in the top navigation bar.
 
@@ -92,6 +94,8 @@ Each card shows the model name, size, and family. AMD has pre-configured the ser
 2. Click the **three-dot menu (⋮)** on the model card
 3. Select **Deploy**
 
+<!-- TODO: pick an non gated model that can be finetuned This comment will not appear in the rendered Markdown -->
+
 ![Model card deploy menu](images/04-workbench/02-model-card-deploy-menu.png)
 
 ### Configure the Deployment
@@ -102,7 +106,7 @@ In the deployment panel:
 
 - **Performance metric** — Select **Latency** for this workshop
 
-![Performance dropdown](images/04-workbench/04-deploy-performance-dropdown.png)
+![Performance dropdown](images/04-workbench/04-deploy-performance-dropdown-new.png)
 
 - If the model shows a lock icon (gated model), a Hugging Face token field appears. Click **Select existing token** to use the pre-configured secret from Resource Manager.
 
@@ -202,6 +206,7 @@ Your training data needs to be in **JSONL format** — one JSON object per line,
 ```
 https://github.com/isab8liu-alum/eai-suite-guides/blob/main/dataset/sft-demo-data.jsonl
 ```
+<!--  TODO: update this to actual dev repo dataset. This comment will not appear in the rendered Markdown -->
 
 In AMD AI Workbench:
 
@@ -232,31 +237,33 @@ In AMD AI Workbench:
 
 2. Click **Fine-tune model**
 
-![Fine-tune model configuration panel](images/04-workbench/finetune_model_menu.png)
+![Fine-tune model configuration panel](images/04-workbench/finetune_model_menu-new.png)
 
 3. Configure the fine-tuning job:
 
 | Setting | Value | Notes |
 |---|---|---|
-| **Base model** | Select the model you deployed in Part 1 | The starting point — your dataset teaches it new behavior |
+| **Base model** | Select the model gemma-3-27b-it | The starting point — your dataset teaches it new behavior |
 | **Dataset** | `workshop-demo-data` | The training data you uploaded in Step 2A |
-| **Method** | LoRA (Low-Rank Adaptation) | Efficient fine-tuning — adapts the model without retraining all weights |
-| **Epochs** | 3 | Number of passes through the training data — leave default for the workshop |
-| **Learning rate** | 2e-4 | Leave default for the workshop |
 
-4. Click **Start training**
+Leave the Advanced Settings on default menu. Or for the sake of time, put value of 1 for Batch size and Number of epochs
 
-The fine-tuning job appears in **Workloads** with a **Training** status badge. You can monitor its progress — loss curves and training metrics stream in as it runs.
+
+1. Click **Start training**
+
+2. The fine-tuning job appears in **Workloads** with a **Pending** status badge. You can monitor its progress.
+
+3. Proceed to next step when the status shows **Complete**
 
 > **How long does it take?** With a small dataset on 1 GPU, a 3-epoch job typically finishes in 5–15 minutes. Larger datasets or more epochs take proportionally longer. Resource Manager quotas apply — the training job consumes GPU resources from your project's quota while running.
 
 ---
 
-## Step 2C: Deploy and Test Your Fine-Tuned Model
+## Step 2C: Test Your Fine-Tuned Model
 
-Once training completes, the custom model appears in the **Custom Models** tab.
+Once training completes, the custom model appears in the **Custom Models** tab in the **Models** side menu.
 
-1. Click **Deploy** on your fine-tuned model — it deploys exactly like any other AIM
+1. Right click the three dots  on your fine-tuned model — then select **Deploy** -  it deploys exactly like any other AIM
 2. Wait for status to show **Running**
 3. Click **Chat** and ask it questions from the training domain
 
