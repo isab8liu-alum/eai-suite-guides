@@ -12,22 +12,6 @@
 
 This workshop runs entirely in the browser — no local commands are required. All benchmarking in Part 3 is done inside an in-cluster VSCode workspace (which is Linux-based), so your laptop's operating system does not affect any workshop commands.
 
-That said, if your facilitator asks you to run any setup steps locally (e.g., copying a kubeconfig), use a proper shell for your OS:
-
-### 🐧 Linux
-No setup required. Your default terminal is ready.
-
-### 🪟 Windows — Use WSL (Windows Subsystem for Linux)
-Use **WSL** rather than PowerShell or Command Prompt for any local shell work.
-
-1. Open **PowerShell as Administrator**
-2. Run: `wsl --install`
-3. Restart your machine when prompted
-4. After restart, open **WSL** (search "Ubuntu" or "WSL" in the Start menu) and complete the Ubuntu first-run setup (create a username and password)
-
-### 🍎 macOS
-Open **Terminal** (Applications → Utilities → Terminal). No additional tools are needed for this workshop.
-
 ---
 
 ## What You Will Learn Today
@@ -263,9 +247,12 @@ Leave the Advanced Settings on default menu. Or for the sake of time, put value 
 
 Once training completes, the custom model appears in the **Custom Models** tab in the **Models** side menu.
 
-1. Right click the three dots  on your fine-tuned model — then select **Deploy** -  it deploys exactly like any other AIM
+1. Right click the three dots  on your fine-tuned model — then select **Deploy** - it deploys exactly like any other AIM
 2. Wait for status to show **Running**
-3. Click **Chat** and ask it questions from the training domain
+3. Navigate to **Deployed Models** tab.
+4. Click **Chat** and ask it questions from the training domain
+<!-- TODO update steps here. This comment will not appear in the rendered Markdown -->   
+
 
 Compare the fine-tuned model's responses against the base model from Part 1. The fine-tuned model should show noticeably better alignment with your domain terminology and the response style captured in the training data.
 
@@ -273,6 +260,7 @@ Compare the fine-tuned model's responses against the base model from Part 1. The
 
 
 ---
+<!-- skip below due to time
 
 # Part 3: Benchmarking with vLLM Bench Serve in VSCode (Optional)
 
@@ -392,6 +380,7 @@ Inter-Token Latency (ms):
 
 > **Exercise:** Increase `--max-concurrency` to 25, re-run the benchmark, and observe how TTFT and throughput change. If autoscaling is configured, switch to the Workbench Workloads tab and watch for a new replica to appear.
 
+-->
 ---
 
 # Part 4: AMD Resource Manager — Platform Administration (10 minutes)
@@ -416,19 +405,17 @@ In this section you will tour the user workflow. Your instructor will also demo 
 Open a browser and navigate to the Resource Manager URL provided by your facilitator:
 
 - Format: `https://airm.<your-domain>` or the IP-based URL on your workshop sheet
+<!-- TODO update this url This comment will not appear in the rendered Markdown -->
 
 Use the **login credentials** your facilitator provided.
 
-![Resource Manager dashboard overview](images/03-resource-manager/01-dashboard-overview.png)
+![Resource Manager dashboard overview](images/03-resource-manager/01-dashboard-overview-new.png)
 
-The dashboard shows:
-- **Cluster-level resource utilization** — total GPU capacity, current usage, and available headroom
-- **Active projects** and their quota consumption
-- **System alerts** and recent events
+The dashboard has two sections:
 
-Click **View Config** (top right) to see cluster-level details such as node count, GPU type, and software versions.
+**Clusters and Nodes** — summary cards showing the number of clusters, GPU nodes, available GPUs, and allocated GPUs across the cluster.
 
-![Cluster config view](images/03-resource-manager/cluster_view_view_config.png)
+**Allocations and Workloads** — a **Consumption by project** table listing each project's GPU allocation, GPU utilization, running workloads, and pending workloads. Summary cards on the right show total GPU Utilization, Running Workloads, and Pending Workloads across all projects.
 
 ---
 
@@ -476,6 +463,7 @@ The quota tab shows limits set for the project:
 ---
 
 ## Step 4D: Add a Secret 
+<!--check if users can do this-->
 
 Secrets allow you to securely distribute credentials — like a Hugging Face API token for downloading gated models — to all workloads in a project, without users ever seeing the raw token value.
 

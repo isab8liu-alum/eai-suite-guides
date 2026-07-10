@@ -27,6 +27,8 @@ All subsequent terminal commands in this workshop are run inside your WSL termin
 ### 🍎 macOS
 Open **Terminal** (Applications → Utilities → Terminal) or a terminal emulator of your choice. The workshop commands run as-is on macOS with one exception: the `kubectl` install step uses a Linux binary URL — see the footnote in Step 1A.
 
+<!-- TODO test on mac once deployed -->
+
 ### Required Tools Summary
 The tools below are installed during Step 1A. For reference:
 
@@ -159,10 +161,12 @@ The **MRI Documentation Blueprint** (`aimsb-mri-docs`) is a complete medical ima
 Replace the placeholder values with your own. Your facilitator will confirm your namespace.
 
 ```bash
-name="my-deployment"       # A unique label (use your first name or username)
-namespace="my-namespace"   # Your assigned Kubernetes namespace
+name="my-deployment"       # A unique label 
+namespace="project-<your project number>"   # Your assigned Kubernetes namespace
 chart="aimsb-mri-docs"     # The MRI Documentation Blueprint
 ```
+
+<!-- what namespace value? tied to each project? This comment will not appear in the rendered Markdown -->
 
 ### Deploy
 
