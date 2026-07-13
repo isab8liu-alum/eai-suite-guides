@@ -47,11 +47,10 @@ The tools below are installed during Step 1A. For reference:
 In this workshop you will experience the AMD Inference Microservices (AIMs) and Solution Blueprints — from deploying a healthcare focused AI application to customizing and extending it.
 
 You will:
-1. **Deploy a complete medical imaging AI application** using a Solution Blueprint in a single command
-2. **Customize the application** — connecting it to a shared AI model and modifying its components
-3. **Deploy AIMs directly via kubectl** — the CLI-native approach for platform teams (Bonus)
-4. **Fine-tune a model on custom data** through the Workbench UI (Bonus)
-5. **(Optional)** Deploy and monitor an AI model through the AMD AI Workbench UI
+1. **Deploy an AIM via kubectl** — the CLI-native approach for launching a model on the cluster
+2. **Deploy a complete medical imaging AI application** using a Solution Blueprint — pointed directly at the AIM you just deployed
+3. **Customize the Blueprint** — tear down the initial deployment and redeploy it connected to your shared AIM
+4. **(Optional)** Deploy and monitor an AI model through the AMD AI Workbench UI
 
 No deep Kubernetes or ML experience required. Every command is explained step by step.
 
@@ -68,21 +67,19 @@ No deep Kubernetes or ML experience required. Every command is explained step by
 
 ---
 
-# Part 1: Solution Blueprints — Deploy and Customize a Medical Imaging AI Application (25 minutes)
+# Part 1: Deploy an AIM via CLI (15 minutes)
 
-## Why Solution Blueprints?
+The AMD AI Workbench UI is ideal for self-service model deployment, but enterprise platform teams often need to deploy AIMs programmatically — from CI/CD pipelines, scripts, or automation tooling. The **AIM Engine CLI** provides direct Kubernetes-native control over AIM lifecycle.
 
-Building an AI application from scratch — even with a model already running — still requires writing a UI, a backend, prompt engineering, API wiring, and deployment code. For enterprise teams evaluating use cases, this delay kills momentum.
-
-**Solution Blueprints** eliminate that gap. Each Blueprint is a complete, production-ready AI application distributed as a single deployable package. In this section you will deploy the **MRI Documentation Blueprint** — a full application for AI-assisted medical imaging analysis and report generation.
+> **When would you use this?** Scripted deployments, automated scaling triggers, GitOps workflows, or when deploying AIMs to namespaces outside the Workbench's scope.
 
 ---
 
 ## Step 1A: Open a Terminal and Set Up Tools
 
-All Blueprint deployments use standard Kubernetes tooling from the command line. Open a terminal on your laptop (WSL if on Windows).
+All commands in this workshop run from the terminal on your laptop (WSL if on Windows).
 
-> **Why the terminal?** Helm and kubectl are industry-standard tools for deploying applications to Kubernetes. Once you know these two commands, you can deploy any Blueprint — or any Kubernetes application — in seconds.
+> **Why the terminal?** kubectl and Helm are industry-standard tools for deploying applications to Kubernetes. Once you know these commands, you can deploy any AIM or Blueprint in seconds.
 
 ### Install Required Tools
 
@@ -118,8 +115,6 @@ Verify all three installed correctly:
 kubectl version --client && helm version && k9s version
 ```
 
-> **What is Helm?** Helm is like an app store for Kubernetes. AMD Solution Blueprints are packaged as Helm "charts" — you deploy the entire application with a single command instead of managing dozens of individual configuration files.
-
 ---
 
 ## Step 1B: Connect Your Terminal to the Workshop Cluster
@@ -144,13 +139,133 @@ kubectl get nodes
 
 **Expected output:** A list of cluster nodes with `Ready` status. If you see this, your terminal is connected to the cluster.
 
-For a live visual view of the cluster, run `k9s`. Press `:q` to exit.
+Also set your namespace — your facilitator will confirm your project number:
+
+```bash
+namespace="project-<your project number>"   # Your assigned Kubernetes namespace
+```
 
 ---
 
-## Step 1C: Deploy the MRI Documentation Blueprint
+## Step 1C: Understand How AIMs Deploy Under the Hood
 
-The **MRI Documentation Blueprint** (`aimsb-mri-docs`) is a complete medical imaging AI application. It provides:
+Every AIM deployed through the Workbench is backed by a **Kubernetes Custom Resource** of kind `AIMDeployment`. The Workbench UI is simply a front-end for creating and managing these resources. You can create them directly via `kubectl` — giving you the same result without the UI.
+
+A minimal AIM deployment manifest looks like this:
+
+```yaml
+apiVersion: aims.amd.com/v1alpha1
+kind: AIMDeployment
+metadata:
+  name: llama-3-8b-cli
+  namespace: my-namespace
+spec:
+  model:
+    name: meta-llama/Meta-Llama-3-8B-Instruct
+  resources:
+    gpus: 1
+  performanceProfile: latency
+```
+
+---
+
+## Step 1D: Deploy an AIM via kubectl
+
+Save the manifest and apply it:
+
+```bash
+cat <<EOF > aim-deploy.yaml
+apiVersion: aims.amd.com/v1alpha1
+kind: AIMDeployment
+metadata:
+  name: llama-3-8b-cli
+  namespace: $namespace
+spec:
+  model:
+    name: meta-llama/Meta-Llama-3-8B-Instruct
+  resources:
+    gpus: 1
+  performanceProfile: latency
+  huggingFace:
+    tokenSecret:
+      name: hugging-face-token   # Kubernetes secret created in Resource Manager
+      key: HF_TOKEN
+EOF
+
+kubectl apply -f aim-deploy.yaml
+```
+
+> **What is the controller doing?** The AIM Engine controller watches for `AIMDeployment` resources and automatically creates the underlying vLLM serving pod, service, and metrics endpoint. You never touch the raw pod spec.
+
+Watch the AIM come up in k9s:
+
+```bash
+k9s -n $namespace
+```
+
+Wait until the AIM pod shows **Running** before continuing to Part 2.
+
+---
+
+## Step 1E: Query the AIM Directly
+
+Once the pod is **Running**, confirm the model is serving by sending a test request:
+
+```bash
+# Port-forward to your local machine
+kubectl port-forward svc/llama-3-8b-cli 8000:8000 -n $namespace &
+
+# Send a test inference request
+curl http://localhost:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "meta-llama/Meta-Llama-3-8B-Instruct",
+    "messages": [{"role": "user", "content": "Summarize the key benefits of AMD MI300X GPUs in two sentences."}],
+    "max_tokens": 150
+  }'
+```
+
+The response streams back in OpenAI-compatible format — meaning any application already written for OpenAI's API can point to this endpoint with no code changes.
+
+Now note the AIM's internal service name — you will use it in Part 2:
+
+```bash
+kubectl get svc -n $namespace -l app=llama-3-8b-cli
+```
+
+Copy the service name from the output (e.g., `llama-3-8b-cli`). Set it as a variable:
+
+```bash
+aimservice="llama-3-8b-cli"
+```
+
+---
+
+## CLI vs. UI: When to Use Each
+
+| Scenario | Use |
+|---|---|
+| Developer / data scientist self-service | **Workbench UI** |
+| Automated deployment from CI/CD | **kubectl / AIM Engine CLI** |
+| GitOps — model config stored in git | **kubectl apply** with YAML manifests |
+| Batch deployment of many models | **kubectl** with a loop or Helm |
+| Exploring the catalog and testing models | **Workbench UI** |
+
+---
+
+# Part 2: Solution Blueprints — Deploy and Customize a Medical Imaging AI Application (20 minutes)
+
+## Why Solution Blueprints?
+
+Building an AI application from scratch — even with a model already running — still requires writing a UI, a backend, prompt engineering, API wiring, and deployment code. For enterprise teams evaluating use cases, this delay kills momentum.
+
+**Solution Blueprints** eliminate that gap. Each Blueprint is a complete, production-ready AI application distributed as a single deployable package. In this section you will deploy the **MRI Documentation Blueprint** — a full application for AI-assisted medical imaging analysis and report generation — connected directly to the AIM you deployed in Part 1.
+
+---
+
+## Step 2A: Deploy the MRI Documentation Blueprint
+
+The **MRI Documentation Blueprint** (`aimsb-mri-docs`) provides:
 - AI-assisted analysis and summarization of MRI scan reports
 - Natural language querying over medical imaging documentation
 - Automated report generation for radiologists and clinical teams
@@ -158,36 +273,37 @@ The **MRI Documentation Blueprint** (`aimsb-mri-docs`) is a complete medical ima
 
 ### Set Your Variables
 
-Replace the placeholder values with your own. Your facilitator will confirm your namespace.
-
 ```bash
-name="my-deployment"       # A unique label 
-namespace="project-<your project number>"   # Your assigned Kubernetes namespace
+name="my-deployment"       # A unique label for your Blueprint deployment
 chart="aimsb-mri-docs"     # The MRI Documentation Blueprint
 ```
 
 <!-- what namespace value? tied to each project? This comment will not appear in the rendered Markdown -->
 
-### Deploy
+### Deploy — Pointing to Your AIM
+
+Rather than letting the Blueprint spin up its own model, deploy it connected directly to the AIM you launched in Part 1:
 
 ```bash
 helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
+  --set llm.existingService=$aimservice \
   | kubectl apply -f - -n $namespace
 ```
 
 > **What does this do?**
 > - `helm template` downloads the Blueprint chart from AMD's registry and converts it into Kubernetes configuration files
-> - `kubectl apply` sends those configurations to the cluster, creating the application's services, containers, and networking
+> - `--set llm.existingService` tells the Blueprint to use your already-running AIM instead of deploying a new model
+> - `kubectl apply` sends those configurations to the cluster, creating the application's UI, backend, and networking — but not a redundant model
 
 ### Verify the Deployment
 
 ```bash
-kubectl get pods -n $namespace
+k9s -n $namespace
 ```
 
-Pods may show `ContainerCreating` or `Pending` while images pull — this is normal. Run the command again in 2–3 minutes until all pods show **Running**.
+This opens a live dashboard scoped to your namespace. Pods will initially show `ContainerCreating` or `Pending` while images pull — this is normal. Watch the **STATUS** column until all pods show **Running** before continuing.
 
-You can also run `k9s` and navigate to your namespace for a live view.
+> **k9s tips:** Use the arrow keys to navigate between pods. Press `d` to describe a pod (useful for troubleshooting), `l` to stream its logs, and `:q` to exit.
 
 ![Blueprint deployment in progress](images/blueprints/blueprint-wsl-deployment.png)
 
@@ -207,25 +323,27 @@ You should see the MRI Documentation interface. Try uploading a sample report or
 
 ---
 
-## Step 1D: Blueprint Customization
+## Step 2B: Blueprint Customization
 
-Bluprints are open-source — the source code is available on GitHub and every component can be modified. Here are some customizations you can explore:
+Blueprints are open-source — the source code is available on GitHub and every component can be modified. In this section you will tear down the current Blueprint deployment and redeploy it with a different configuration to see how easy customization is.
 
-**1. Connect the Blueprint to a Shared AI Model**
+**1. Tear Down and Redeploy with a Different AIM**
 
-By default the Blueprint deployed its own AI model. In an enterprise environment, you would point it at a centrally managed AIM so multiple applications share one model — reducing GPU waste and simplifying updates.
-
-If you have a running AIM available (or after completing the optional Workbench section), find the model's internal service name and reconnect the Blueprint:
+Stop the port-forward (`Ctrl+C`) and delete the existing Blueprint:
 
 ```bash
-servicename="<your-model-service-name>"   # e.g., aim-llm-meta-llama-3-8b-abc123
-
 helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
-  --set llm.existingService=$servicename \
-  | kubectl apply -f - -n $namespace
+  | kubectl delete -f - -n $namespace
 ```
 
-Wait for pods to restart, then refresh **http://localhost:7860**. The application is now powered by the shared model.
+Wait for pods to terminate (watch in k9s), then redeploy pointing to a different shared AIM service if your facilitator has provided an alternative, or redeploy the same AIM with a different performance profile:
+
+```bash
+# Redeploy — swap in any other running AIM service name here
+helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
+  --set llm.existingService=$aimservice \
+  | kubectl apply -f - -n $namespace
+```
 
 > **Why does this matter?** Running a separate model per application wastes GPU resources and creates management complexity. By pointing Blueprints at a shared AIM, your team gets one model to monitor, update, and scale — and every application benefits automatically.
 
@@ -303,193 +421,15 @@ Change the `chart` variable and re-run the deploy command. You can have multiple
 
 ---
 
-# Part 2: Deploy AIMs via CLI (Bonus — if time allows)
+# Part 3: Deploy an AI Model with AMD AI Workbench (Optional)
 
-The AMD AI Workbench UI is ideal for self-service model deployment, but enterprise platform teams often need to deploy AIMs programmatically — from CI/CD pipelines, scripts, or automation tooling. The **AIM Engine CLI** provides direct Kubernetes-native control over AIM lifecycle.
-
-> **When would you use this?** Scripted deployments, automated scaling triggers, GitOps workflows, or when deploying AIMs to namespaces outside the Workbench's scope.
-
----
-
-## Step 2A: Understand How AIMs Deploy Under the Hood
-
-Every AIM deployed through the Workbench is backed by a **Kubernetes Custom Resource** of kind `AIMDeployment`. The Workbench UI is simply a front-end for creating and managing these resources. You can create them directly via `kubectl` — giving you the same result without the UI.
-
-A minimal AIM deployment manifest looks like this:
-
-```yaml
-apiVersion: aims.amd.com/v1alpha1
-kind: AIMDeployment
-metadata:
-  name: llama-3-8b-cli
-  namespace: my-namespace
-spec:
-  model:
-    name: meta-llama/Meta-Llama-3-8B-Instruct
-  resources:
-    gpus: 1
-  performanceProfile: latency
-```
-
----
-
-## Step 2B: Deploy an AIM via kubectl
-
-Make sure your `KUBECONFIG` is set (from Step 1B), then save the manifest and apply it:
-
-```bash
-cat <<EOF > aim-deploy.yaml
-apiVersion: aims.amd.com/v1alpha1
-kind: AIMDeployment
-metadata:
-  name: llama-3-8b-cli
-  namespace: $namespace
-spec:
-  model:
-    name: meta-llama/Meta-Llama-3-8B-Instruct
-  resources:
-    gpus: 1
-  performanceProfile: latency
-  huggingFace:
-    tokenSecret:
-      name: hugging-face-token   # Kubernetes secret created in Resource Manager
-      key: HF_TOKEN
-EOF
-
-kubectl apply -f aim-deploy.yaml
-```
-
-Watch the AIM come up:
-
-```bash
-kubectl get aimdeployments -n $namespace
-kubectl get pods -n $namespace -l app=llama-3-8b-cli
-```
-
-> **What is the controller doing?** The AIM Engine controller watches for `AIMDeployment` resources and automatically creates the underlying vLLM serving pod, service, and metrics endpoint. You never touch the raw pod spec.
-
----
-
-## Step 2C: Query the AIM Directly
-
-Once the pod is **Running**, you can query the model directly from the terminal — no UI needed:
-
-```bash
-# Get the cluster-internal service endpoint
-kubectl get svc -n $namespace -l app=llama-3-8b-cli
-
-# Port-forward to your local machine
-kubectl port-forward svc/llama-3-8b-cli 8000:8000 -n $namespace &
-
-# Send a test inference request
-curl http://localhost:8000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "meta-llama/Meta-Llama-3-8B-Instruct",
-    "messages": [{"role": "user", "content": "Summarize the key benefits of AMD MI300X GPUs in two sentences."}],
-    "max_tokens": 150
-  }'
-```
-
-The response will stream back in OpenAI-compatible format — meaning any application already written for OpenAI's API can point to this endpoint with no code changes.
-
----
-
-## Step 2D: Tear Down the AIM
-
-```bash
-kubectl delete aimdeployment llama-3-8b-cli -n $namespace
-```
-
-The controller automatically cleans up all associated pods and services.
-
----
-
-## CLI vs. UI: When to Use Each
-
-| Scenario | Use |
-|---|---|
-| Developer / data scientist self-service | **Workbench UI** |
-| Automated deployment from CI/CD | **kubectl / AIM Engine CLI** |
-| GitOps — model config stored in git | **kubectl apply** with YAML manifests |
-| Batch deployment of many models | **kubectl** with a loop or Helm |
-| Exploring the catalog and testing models | **Workbench UI** |
-
----
-
-# Part 3: Fine-Tune a Model on Your Own Data (Bonus — if time allows)
-
-Fine-tuning adapts a general-purpose model to your domain — your terminology, your writing style, your proprietary data. This turns a capable but generic model into one that understands your organization's context and produces outputs that match your standards.
-
-**AMD AI Workbench makes fine-tuning a UI workflow** — no Python, no training scripts, no GPU configuration required. You upload a dataset, select a base model, and the platform handles the rest.
-
----
-
-## Step 3A: Upload Training Data
-
-Your training data needs to be in **JSONL format** — one JSON object per line, where each object contains a prompt/response pair. A sample dataset is provided by your facilitator at:
-
-```
-https://github.com/isab8liu-alum/eai-suite-guides/blob/main/dataset/sft-demo-data.jsonl
-```
-
-In AMD AI Workbench:
-
-1. Click **Datasets** in the left sidebar
-2. Click **Upload**
-3. Fill in:
-   - **Dataset name** — e.g., `workshop-demo-data`
-   - **Data type** — `.jsonl` / instruction fine-tuning format
-4. Select your file and click **Upload**
-
-> **What is in the dataset?** The sample dataset contains instruction-response pairs in the standard SFT (Supervised Fine-Tuning) format. Each entry looks like:
-> ```json
-> {"messages": [{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]}
-> ```
-
----
-
-## Step 3B: Start a Fine-Tuning Job
-
-1. Click **Models** in the left sidebar → switch to the **Custom Models** tab
-2. Click **Fine-tune model**
-3. Configure the fine-tuning job:
-
-| Setting | Value | Notes |
-|---|---|---|
-| **Base model** | Select any deployed model | The starting point — your dataset teaches it new behavior |
-| **Dataset** | `workshop-demo-data` | The training data you uploaded in Step 3A |
-| **Method** | LoRA (Low-Rank Adaptation) | Efficient fine-tuning — adapts the model without retraining all weights |
-| **Epochs** | 3 | Number of passes through the training data |
-| **Learning rate** | 2e-4 | Leave default for the workshop |
-
-4. Click **Start training**
-
-The fine-tuning job appears in **Workloads** with a **Training** status badge. You can monitor its progress — loss curves and training metrics stream in as it runs.
-
----
-
-## Step 3C: Deploy and Test Your Fine-Tuned Model
-
-Once training completes, the custom model appears in the **Custom Models** tab.
-
-1. Click **Deploy** on your fine-tuned model — it deploys exactly like any other AIM
-2. Wait for status to show **Running**
-3. Click **Chat** and ask it questions from the training domain
-
-Compare the fine-tuned model's responses against the base model. The fine-tuned model should show noticeably better alignment with your domain terminology and the response style captured in the training data.
-
----
-
-# Part 4: Deploy an AI Model with AMD AI Workbench (Optional)
-
-> **This section is optional.** The core workshop (Parts 1–3) does not require it. Come back here if time allows, or explore it after the session to see how the platform's self-service UI works end-to-end.
+> **This section is optional.** Parts 1 and 2 are the core workshop. Come back here if time allows, or explore it after the session to see how the platform's self-service UI works end-to-end.
 
 AMD AI Workbench is the self-service portal your data scientists, developers, and engineers use to deploy models, test them, and connect them to applications — with no command-line knowledge required.
 
 ---
 
-## Step 4A: Log In to AMD AI Workbench
+## Step 3A: Log In to AMD AI Workbench
 
 Open a browser and navigate to the AI Workbench URL provided by your facilitator:
 
@@ -501,7 +441,7 @@ Use the login credentials your facilitator provided. After login, confirm you ar
 
 ---
 
-## Step 4B: Deploy an AI Model
+## Step 3B: Deploy an AI Model
 
 ### Browse the Model Catalog
 
@@ -538,7 +478,7 @@ Click **Deploy**. A confirmation message will appear.
 
 ---
 
-## Step 4C: Monitor Your Model and Explore Inference Metrics
+## Step 3C: Monitor Your Model and Explore Inference Metrics
 
 ### Watch the Deployment
 
@@ -565,23 +505,6 @@ Once Running, click **Open details** (or the model name) to see real-time perfor
 
 From the model details page, click **Chat** to open a direct conversation interface. Ask a question, evaluate the response quality, and observe the latency.
 
-### Connect the Blueprint to Your Model
-
-Once your model is running, you can point the Blueprint from Part 1 at it — replacing the Blueprint's built-in model with your centrally managed AIM:
-
-```bash
-# Get the model's service name
-kubectl get svc -n $namespace | grep aim-llm
-
-servicename="<your-model-service-name>"   # e.g., aim-llm-meta-llama-3-8b-abc123
-
-helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
-  --set llm.existingService=$servicename \
-  | kubectl apply -f - -n $namespace
-```
-
-Wait for pods to restart, then refresh **http://localhost:7860**. The MRI Documentation application is now powered by your Workbench-deployed model.
-
 ---
 
 ## Workshop Complete
@@ -590,11 +513,9 @@ You have now experienced the AMD Enterprise AI Software Stack end-to-end:
 
 | What You Did | What It Demonstrates |
 |---|---|
-| Deployed a Solution Blueprint with a single Helm command | Complete AI applications in minutes |
-| Connected the Blueprint to a shared AI model | The platform's composable, shared-model architecture |
-| Customized the Blueprint's components | Open-source, modifiable applications |
 | Deployed an AIM via kubectl | Programmable, CLI-native model lifecycle management |
-| Fine-tuned a model on custom data | Domain adaptation without ML engineering expertise |
+| Deployed a Solution Blueprint pointed at your AIM | Complete AI applications in minutes, no redundant model deployment |
+| Tore down and redeployed the Blueprint with a different configuration | Open-source, composable applications that share a single model |
 | Deployed and monitored an AI model via Workbench UI | Self-service AI for teams without infrastructure expertise |
 
 **Next steps:**
