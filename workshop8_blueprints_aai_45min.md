@@ -157,11 +157,11 @@ A minimal AIM deployment manifest looks like this:
 apiVersion: aims.amd.com/v1alpha1
 kind: AIMDeployment
 metadata:
-  name: llama-3-8b-cli
+  name: gemma-3-1b-cli
   namespace: my-namespace
 spec:
   model:
-    name: meta-llama/Meta-Llama-3-8B-Instruct
+    name: google/gemma-3-1b-it
   resources:
     gpus: 1
   performanceProfile: latency
@@ -178,24 +178,22 @@ cat <<EOF > aim-deploy.yaml
 apiVersion: aims.amd.com/v1alpha1
 kind: AIMDeployment
 metadata:
-  name: llama-3-8b-cli
+  name: gemma-3-1b-cli
   namespace: $namespace
 spec:
   model:
-    name: meta-llama/Meta-Llama-3-8B-Instruct
+    name: google/gemma-3-1b-it
   resources:
     gpus: 1
   performanceProfile: latency
-  huggingFace:
-    tokenSecret:
-      name: hugging-face-token   # Kubernetes secret created in Resource Manager
-      key: HF_TOKEN
 EOF
 
 kubectl apply -f aim-deploy.yaml
 ```
 
 > **What is the controller doing?** The AIM Engine controller watches for `AIMDeployment` resources and automatically creates the underlying vLLM serving pod, service, and metrics endpoint. You never touch the raw pod spec.
+>
+> **Why Gemma 3 1B?** It is a compact, open-weight model that loads quickly on a single GPU — ideal for a workshop where startup time matters. The same `AIMDeployment` pattern works for any model in the AMD AIM catalog.
 
 Watch the AIM come up in k9s:
 
@@ -213,13 +211,13 @@ Once the pod is **Running**, confirm the model is serving by sending a test requ
 
 ```bash
 # Port-forward to your local machine
-kubectl port-forward svc/llama-3-8b-cli 8000:8000 -n $namespace &
+kubectl port-forward svc/gemma-3-1b-cli 8000:8000 -n $namespace &
 
 # Send a test inference request
 curl http://localhost:8000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "meta-llama/Meta-Llama-3-8B-Instruct",
+    "model": "google/gemma-3-1b-it",
     "messages": [{"role": "user", "content": "Summarize the key benefits of AMD MI300X GPUs in two sentences."}],
     "max_tokens": 150
   }'
@@ -227,16 +225,16 @@ curl http://localhost:8000/v1/chat/completions \
 
 The response streams back in OpenAI-compatible format — meaning any application already written for OpenAI's API can point to this endpoint with no code changes.
 
-Now note the AIM's internal service name — you will use it in Part 2:
+Now note the AIM's internal service name — you will use it in Step 2B:
 
 ```bash
-kubectl get svc -n $namespace -l app=llama-3-8b-cli
+kubectl get svc -n $namespace -l app=gemma-3-1b-cli
 ```
 
-Copy the service name from the output (e.g., `llama-3-8b-cli`). Set it as a variable:
+Copy the service name from the output (e.g., `gemma-3-1b-cli`). Set it as a variable:
 
 ```bash
-aimservice="llama-3-8b-cli"
+aimservice="gemma-3-1b-cli"
 ```
 
 ---
@@ -265,7 +263,7 @@ Building an AI application from scratch — even with a model already running �
 
 ## Step 2A: Deploy the MRI Documentation Blueprint
 
-The **MRI Documentation Blueprint** (`aimsb-mri-docs`) provides:
+The **MRI Documentation Blueprint** (`aimsb-mri-doc`) provides:
 - AI-assisted analysis and summarization of MRI scan reports
 - Natural language querying over medical imaging documentation
 - Automated report generation for radiologists and clinical teams
@@ -275,25 +273,23 @@ The **MRI Documentation Blueprint** (`aimsb-mri-docs`) provides:
 
 ```bash
 name="my-deployment"       # A unique label for your Blueprint deployment
-chart="aimsb-mri-docs"     # The MRI Documentation Blueprint
+chart="aimsb-mri-doc"      # The MRI Documentation Blueprint
 ```
 
 <!-- what namespace value? tied to each project? This comment will not appear in the rendered Markdown -->
 
-### Deploy — Pointing to Your AIM
-
-Rather than letting the Blueprint spin up its own model, deploy it connected directly to the AIM you launched in Part 1:
+### Deploy
 
 ```bash
 helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
-  --set llm.existingService=$aimservice \
   | kubectl apply -f - -n $namespace
 ```
 
 > **What does this do?**
 > - `helm template` downloads the Blueprint chart from AMD's registry and converts it into Kubernetes configuration files
-> - `--set llm.existingService` tells the Blueprint to use your already-running AIM instead of deploying a new model
-> - `kubectl apply` sends those configurations to the cluster, creating the application's UI, backend, and networking — but not a redundant model
+> - `kubectl apply` sends those configurations to the cluster, creating the application's UI, backend, networking, and a bundled AIM
+>
+> **What is the bundled AIM?** Each Blueprint ships with a default AIM configuration — a pre-selected model that the Blueprint is tested and optimized against. Deploying without overrides uses this default, so the application works immediately with no extra setup.
 
 ### Verify the Deployment
 
@@ -312,14 +308,12 @@ This opens a live dashboard scoped to your namespace. Pods will initially show `
 Once all pods are Running, open a port-forward to view the application:
 
 ```bash
-kubectl port-forward services/aimsb-mri-docs-$name-ui 7860:7860 -n $namespace
+kubectl port-forward services/aimsb-mri-doc-$name 7861:80 -n $namespace
 ```
 
-Open your browser to **http://localhost:7860**
+Open your browser to **http://localhost:7861**
 
 You should see the MRI Documentation interface. Try uploading a sample report or asking it a question about an imaging study.
-
-> **Note:** Each Blueprint uses a different port. If the above port-forward does not work, check the MRI Documentation Blueprint's `DEPLOYMENT.md` on GitHub for the correct service name and port.
 
 ---
 
@@ -336,16 +330,17 @@ helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
   | kubectl delete -f - -n $namespace
 ```
 
-Wait for pods to terminate (watch in k9s), then redeploy pointing to a different shared AIM service if your facilitator has provided an alternative, or redeploy the same AIM with a different performance profile:
+Wait for pods to terminate (watch in k9s), then redeploy the Blueprint — this time pointing it at the Gemma 3 1B AIM you deployed in Part 1:
 
 ```bash
-# Redeploy — swap in any other running AIM service name here
 helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
   --set llm.existingService=$aimservice \
   | kubectl apply -f - -n $namespace
 ```
 
-> **Why does this matter?** Running a separate model per application wastes GPU resources and creates management complexity. By pointing Blueprints at a shared AIM, your team gets one model to monitor, update, and scale — and every application benefits automatically.
+Wait for pods to restart, then refresh **http://localhost:7861**. The Blueprint is now powered by your shared AIM instead of its bundled model.
+
+> **Why does this matter?** Running a separate model per application wastes GPU resources and creates management complexity. By pointing Blueprints at a shared AIM, your team gets one model to monitor, update, and scale — and every application benefits automatically. This is also how you would swap in a different model without rebuilding the Blueprint.
 
 **2. Upgrade the Image Segmentation Model (UNet via MONAI)**
 
@@ -361,24 +356,26 @@ cd solution-blueprints/solution-blueprints/mri-doc
 Open `src/mri_analysis.py` and find the `segment_brain_tissue()` function. The current K-means implementation looks like this:
 
 ```python
-# Current: simple K-means clustering
-def segment_brain_tissue(image_array, n_clusters=3):
-    pixels = image_array.reshape(-1, 1).astype(np.float32)
+# Current: simple K-means clustering (class method inside MRIAnalyzer)
+def segment_brain_tissue(self, image, n_clusters=4):
+    pixels = image.reshape(-1, 1).astype(np.float32)
     kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
     kmeans.fit(pixels)
-    labels = kmeans.labels_.reshape(image_array.shape)
-    return labels
+    labels = kmeans.labels_.reshape(image.shape)
+    segmented = labels.astype(np.float32) / (n_clusters - 1)
+    tissue_stats = {"n_clusters": n_clusters}
+    return segmented, tissue_stats
 ```
 
-Replace it with a MONAI UNet inference call:
+Replace it with a MONAI UNet inference call. The method must remain a class method with the same signature and return the same `(segmented, tissue_stats)` tuple so the rest of the class continues to work:
 
 ```python
-# Upgraded: MONAI UNet from a pretrained bundle
+# Upgraded: MONAI UNet from a pretrained bundle (class method inside MRIAnalyzer)
 import torch
 from monai.networks.nets import UNet
 from monai.transforms import Compose, ScaleIntensity, EnsureChannelFirst, ToTensor
 
-def segment_brain_tissue(image_array, model_path="models/brain_segmentation_unet.pth"):
+def segment_brain_tissue(self, image, model_path="models/brain_segmentation_unet.pth"):
     # Load pretrained UNet (download bundle from MONAI Model Zoo)
     model = UNet(
         spatial_dims=2,
@@ -391,12 +388,14 @@ def segment_brain_tissue(image_array, model_path="models/brain_segmentation_unet
     model.eval()
 
     transform = Compose([EnsureChannelFirst(), ScaleIntensity(), ToTensor()])
-    input_tensor = transform(image_array).unsqueeze(0)   # add batch dim
+    input_tensor = transform(image).unsqueeze(0)   # add batch dim
 
     with torch.no_grad():
         output = model(input_tensor)
     labels = output.argmax(dim=1).squeeze().numpy()
-    return labels
+    segmented = labels.astype(np.float32) / 2          # normalise to [0, 1] for 3 classes
+    tissue_stats = {"n_clusters": 3}
+    return segmented, tissue_stats
 ```
 
 Download a pretrained bundle from the MONAI Model Zoo and save the weights to `models/brain_segmentation_unet.pth`, then rebuild and redeploy the Blueprint container. The application will now use deep learning segmentation on every uploaded scan.
