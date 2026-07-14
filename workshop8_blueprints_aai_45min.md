@@ -466,7 +466,13 @@ helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
   | kubectl apply -f - -n $namespace
 ```
 
-Wait for pods to restart, then refresh **http://localhost:7861**. The Blueprint is now powered by your shared AIM instead of its bundled model.
+Wait for pods to restart, then port-forward to access the UI:
+
+```bash
+kubectl port-forward services/aimsb-mri-doc-$name 7861:80 -n $namespace
+```
+
+Then open **http://localhost:7861** in your browser. The Blueprint is now powered by your shared AIM instead of its bundled model.
 
 > **Why does this matter?** Running a separate model per application wastes GPU resources and creates management complexity. By pointing Blueprints at a shared AIM, your team gets one model to monitor, update, and scale — and every application benefits automatically. This is also how you would swap in a different model without rebuilding the Blueprint.
 
