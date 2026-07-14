@@ -67,11 +67,11 @@ No deep Kubernetes or ML experience required. Every command is explained step by
 
 ---
 
-# Part 1: Deploy an AIM via CLI (15 minutes)
+# Part 1: Deploy an AIM via kubectl (15 minutes)
 
-The AMD AI Workbench UI is ideal for self-service model deployment, but enterprise platform teams often need to deploy AIMs programmatically — from CI/CD pipelines, scripts, or automation tooling. The **AIM Engine CLI** provides direct Kubernetes-native control over AIM lifecycle.
+The AMD AI Workbench UI is ideal for self-service model deployment, but enterprise platform teams often need to deploy AIMs programmatically from CI/CD pipelines, scripts, or automation tooling. In this lab you will deploy a minimal AIM service with standard Kubernetes `Deployment` and `Service` manifests.
 
-> **When would you use this?** Scripted deployments, automated scaling triggers, GitOps workflows, or when deploying AIMs to namespaces outside the Workbench's scope.
+> **When would you use this?** Scripted deployments, automated scaling triggers, GitOps workflows, or workshop namespaces that are already prepared by a platform administrator.
 
 ---
 
@@ -86,7 +86,7 @@ All commands in this workshop run from the terminal on your laptop (WSL if on Wi
 Run each block of commands in your terminal:
 
 ```bash
-# Install k9s — a visual Kubernetes dashboard
+# Install k9s - a visual Kubernetes dashboard
 curl -sS https://webinstall.dev/k9s | bash
 source ~/.config/envman/PATH.env
 ```
@@ -94,7 +94,7 @@ source ~/.config/envman/PATH.env
 > **macOS note:** You can also install k9s via Homebrew: `brew install k9s`
 
 ```bash
-# Install kubectl — communicates with the Kubernetes cluster
+# Install kubectl - communicates with the Kubernetes cluster
 mkdir -p ~/.kube
 curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
 chmod +x kubectl
@@ -105,7 +105,7 @@ kubectl version --client
 > **macOS note:** Replace `linux/amd64` in the kubectl URL with `darwin/amd64` (Intel Mac) or `darwin/arm64` (Apple Silicon M1/M2/M3). The rest of the command is identical.
 
 ```bash
-# Install Helm — the package manager used to deploy Blueprints
+# Install Helm - the package manager used to deploy Blueprints
 curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 ```
 
@@ -119,7 +119,7 @@ kubectl version --client && helm version && k9s version
 
 ## Step 1B: Connect Your Terminal to the Workshop Cluster
 
-Your facilitator will provide a **kubeconfig file** — a credential file that lets your terminal communicate with the cluster.
+Your facilitator will provide a **kubeconfig file** - a credential file that lets your terminal communicate with the cluster.
 
 Save the kubeconfig content to your machine:
 
@@ -127,7 +127,7 @@ Save the kubeconfig content to your machine:
 mkdir -p ~/.kube
 nano ~/.kube/demo_write.yaml
 # Paste the kubeconfig content your facilitator provided
-# Save with: Ctrl+O  →  Enter  →  Ctrl+X
+# Save with: Ctrl+O, Enter, Ctrl+X
 ```
 
 Activate it and verify the connection:
@@ -139,7 +139,7 @@ kubectl get nodes
 
 **Expected output:** A list of cluster nodes with `Ready` status. If you see this, your terminal is connected to the cluster.
 
-Also set your namespace — your facilitator will confirm your project number:
+Also set your namespace - your facilitator will confirm your project number:
 
 ```bash
 namespace="project-<your project number>"   # Your assigned Kubernetes namespace
@@ -149,96 +149,224 @@ namespace="project-<your project number>"   # Your assigned Kubernetes namespace
 
 ## Step 1C: Understand How AIMs Deploy Under the Hood
 
-Every AIM deployed through the Workbench is backed by a **Kubernetes Custom Resource** of kind `AIMDeployment`. The Workbench UI is simply a front-end for creating and managing these resources. You can create them directly via `kubectl` — giving you the same result without the UI.
+For this CLI exercise, you will deploy the AIM container directly with a native Kubernetes `Deployment`, then expose it with a Kubernetes `Service`. The model container serves an OpenAI-compatible API on port `8000`.
 
-A minimal AIM deployment manifest looks like this:
+The deployment does **not** put a Hugging Face token in the YAML. Instead, it reads `HF_TOKEN` from a Kubernetes Secret named `hf-token` in your namespace.
 
-```yaml
-apiVersion: aims.amd.com/v1alpha1
-kind: AIMDeployment
-metadata:
-  name: gemma-3-1b-cli
-  namespace: my-namespace
-spec:
-  model:
-    name: google/gemma-3-1b-it
-  resources:
-    gpus: 1
-  performanceProfile: latency
+Verify the workshop Secret exists:
+
+```bash
+kubectl get secret hf-token -n $namespace
 ```
+
+The workshop cluster should provide this Secret ahead of time with a key named `token`. You can verify the key name without printing the token value:
+
+```bash
+kubectl get secret hf-token -n $namespace -o yaml \
+  | sed -n '/^data:/,/^[^ ]/p' \
+  | sed -n 's/^  \([^:]*\):.*/key: \1/p'
+```
+
+Expected output:
+
+```text
+key: token
+```
+
+> **Facilitator setup:** For a public workshop, do not publish the Hugging Face token in this guide. Pre-create `hf-token` in every participant namespace with key `token`, or use External Secrets Operator / your platform secret manager to sync the same secret into each namespace. If a cluster uses a different key name, update the `secretKeyRef.key` field in the deployment YAML to match.
+
+<!-- TODO facilitator add hf-token to all project namespaces as kubernetes secrets -->
 
 ---
 
 ## Step 1D: Deploy an AIM via kubectl
 
-Save the manifest and apply it:
+Create the deployment manifest:
 
 ```bash
-cat <<EOF > aim-deploy.yaml
-apiVersion: aims.amd.com/v1alpha1
-kind: AIMDeployment
+cat <<'EOF' > aai-test-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: gemma-3-1b-cli
-  namespace: $namespace
+  name: minimal-aim-deployment
+  labels:
+    app: minimal-aim-deployment
 spec:
-  model:
-    name: google/gemma-3-1b-it
-  resources:
-    gpus: 1
-  performanceProfile: latency
+  progressDeadlineSeconds: 3600
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minimal-aim-deployment
+  template:
+    metadata:
+      labels:
+        app: minimal-aim-deployment
+    spec:
+      containers:
+        - name: minimal-aim-deployment
+          image: amdenterpriseai/aim-google-gemma-3-27b-it:0.11.0
+          imagePullPolicy: Always
+          env:
+            - name: AIM_PRECISION
+              value: "auto"
+            - name: AIM_GPU_COUNT
+              value: "1"
+            - name: AIM_GPU_MODEL
+              value: "auto"
+            - name: AIM_ENGINE
+              value: "vllm"
+            - name: AIM_METRIC
+              value: "latency"
+            - name: AIM_LOG_LEVEL_ROOT
+              value: "INFO"
+            - name: AIM_LOG_LEVEL
+              value: "INFO"
+            - name: AIM_PORT
+              value: "8000"
+            - name: HF_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hf-token
+                  key: token
+          ports:
+            - name: http
+              containerPort: 8000
+          resources:
+            requests:
+              memory: "16Gi"
+              cpu: "4"
+              amd.com/gpu: "1"
+            limits:
+              memory: "16Gi"
+              cpu: "4"
+              amd.com/gpu: "1"
+          startupProbe:
+            httpGet:
+              path: /v1/models
+              port: http
+            periodSeconds: 10
+            failureThreshold: 360
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /v1/models
+              port: http
+          volumeMounts:
+            - name: ephemeral-storage
+              mountPath: /tmp
+            - name: dshm
+              mountPath: /dev/shm
+      volumes:
+        - name: ephemeral-storage
+          emptyDir:
+            sizeLimit: 256Gi
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 32Gi
 EOF
-
-kubectl apply -f aim-deploy.yaml
 ```
 
-> **What is the controller doing?** The AIM Engine controller watches for `AIMDeployment` resources and automatically creates the underlying vLLM serving pod, service, and metrics endpoint. You never touch the raw pod spec.
->
-> **Why Gemma 3 1B?** It is a compact, open-weight model that loads quickly on a single GPU — ideal for a workshop where startup time matters. The same `AIMDeployment` pattern works for any model in the AMD AIM catalog.
+Create the service manifest:
 
-Watch the AIM come up in k9s:
+```bash
+cat <<'EOF' > aai-test-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: minimal-aim-deployment
+  labels:
+    app: minimal-aim-deployment
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8000
+  selector:
+    app: minimal-aim-deployment
+EOF
+```
+
+Apply both manifests to your namespace:
+
+```bash
+kubectl apply -f aai-test-deployment.yaml -f aai-test-service.yaml -n $namespace
+```
+
+> **Why Gemma 3 27B?** This AIM image is packaged and optimized for AMD Instinct GPUs. It can take several minutes to download model weights, compile kernels, and pass its startup probe on first launch.
+
+Watch the AIM come up:
+
+```bash
+kubectl rollout status deployment/minimal-aim-deployment -n $namespace --timeout=15m
+kubectl get pods -n $namespace -l app=minimal-aim-deployment
+```
+
+You can also watch it in k9s:
 
 ```bash
 k9s -n $namespace
 ```
 
-Wait until the AIM pod shows **Running** before continuing to Part 2.
+Wait until the AIM pod shows **Running** and **1/1 Ready** before continuing to Part 2.
+
+If the pod reports `CreateContainerConfigError`, check the Secret key:
+
+```bash
+kubectl describe pod -n $namespace -l app=minimal-aim-deployment
+```
+
+If the event says `couldn't find key ... in Secret`, update `secretKeyRef.key` in `aai-test-deployment.yaml` to match the key shown by the Secret verification command, then re-apply the deployment.
 
 ---
 
 ## Step 1E: Query the AIM Directly
 
-Once the pod is **Running**, confirm the model is serving by sending a test request:
+Once the pod is **Running**, confirm the model is serving by sending a test request.
+
+Port-forward the service:
 
 ```bash
-# Port-forward to your local machine
-kubectl port-forward svc/gemma-3-1b-cli 8000:8000 -n $namespace &
+kubectl port-forward service/minimal-aim-deployment 8000:80 -n $namespace
+```
 
-# Send a test inference request
+In a second terminal, verify the model endpoint:
+
+```bash
+curl http://localhost:8000/v1/models
+```
+
+Then send a test inference request:
+
+```bash
 curl http://localhost:8000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "google/gemma-3-1b-it",
+    "model": "google/gemma-3-27b-it",
     "messages": [{"role": "user", "content": "Summarize the key benefits of AMD MI300X GPUs in two sentences."}],
     "max_tokens": 150
   }'
 ```
 
-The response streams back in OpenAI-compatible format — meaning any application already written for OpenAI's API can point to this endpoint with no code changes.
+The response streams back in OpenAI-compatible format, meaning any application already written for OpenAI's API can point to this endpoint with no code changes.
 
-Now note the AIM's internal service name — you will use it in Step 2B:
+Now note the AIM's internal service name. You will use it in Step 2B:
 
 ```bash
-kubectl get svc -n $namespace -l app=gemma-3-1b-cli
+kubectl get svc minimal-aim-deployment -n $namespace
 ```
 
-Copy the service name from the output (e.g., `gemma-3-1b-cli`). Set it as a variable:
+Set the service name as a variable:
 
 ```bash
-aimservice="gemma-3-1b-cli"
+aimservice="minimal-aim-deployment"
 ```
 
 ---
-
 ## CLI vs. UI: When to Use Each
 
 | Scenario | Use |
@@ -297,7 +425,7 @@ helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
 k9s -n $namespace
 ```
 
-This opens a live dashboard scoped to your namespace. Pods will initially show `ContainerCreating` or `Pending` while images pull — this is normal. Watch the **STATUS** column until all pods show **Running** before continuing.
+This opens a live dashboard scoped to your namespace. Pods will initially show `ContainerCreating` or `Pending` while images pull — this is normal. Watch the **STATUS** column until all pods show **Running** before continuing. Press `:q` to exit k9s.
 
 > **k9s tips:** Use the arrow keys to navigate between pods. Press `d` to describe a pod (useful for troubleshooting), `l` to stream its logs, and `:q` to exit.
 
@@ -330,7 +458,7 @@ helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
   | kubectl delete -f - -n $namespace
 ```
 
-Wait for pods to terminate (watch in k9s), then redeploy the Blueprint — this time pointing it at the Gemma 3 1B AIM you deployed in Part 1:
+Wait for pods to terminate (watch in k9s), then redeploy the Blueprint — this time pointing it at the Gemma 3 AIM service you deployed in Part 1:
 
 ```bash
 helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
@@ -417,6 +545,34 @@ The same workflow works for any Blueprint:
 | Report Generation | `aimsb-report-generation-engine` | Automated report creation |
 
 Change the `chart` variable and re-run the deploy command. You can have multiple Blueprints all pointing to the same shared AIM.
+
+---
+
+## Cleanup: Undeploy the AIM
+
+If your Blueprint is still configured to use `minimal-aim-deployment`, undeploy or redeploy the Blueprint first. Deleting the AIM while an app depends on it will leave the app without a model backend.
+
+Stop any active port-forward with `Ctrl+C`, then delete the AIM deployment and service:
+
+```bash
+kubectl delete -f aai-test-deployment.yaml -f aai-test-service.yaml -n $namespace
+```
+
+If you no longer have the YAML files, delete the resources by name:
+
+```bash
+kubectl delete deployment/minimal-aim-deployment service/minimal-aim-deployment \
+  -n $namespace \
+  --ignore-not-found
+```
+
+Verify the AIM resources are gone:
+
+```bash
+kubectl get deploy,svc,pods -n $namespace -l app=minimal-aim-deployment
+```
+
+Leave the `hf-token` Secret in place. It is a namespace-level workshop credential and may be reused by other AIM deployments.
 
 ---
 
