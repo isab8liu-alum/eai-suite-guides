@@ -52,13 +52,13 @@ No Kubernetes, terminal, or ML engineering experience required.
 
 Open a browser and navigate to the AI Workbench URL:
 
-- Format: `https://aiwbui.<your-domain>` or the IP-based URL on your workshop sheet
- <!-- TODO update url This comment will not appear in the rendered Markdown -->
+- Format: `https://aiwbui.aai.silogen.ai` or the IP-based URL on your workshop sheet
+
 
 
 Use the **user credentials** your facilitator provided. After login, confirm you are in the correct project by checking the project name in the top navigation bar.
 
-![AMD AI Workbench login page](images/01-overview/login-page.png)
+![AMD AI Workbench login page](aai_workshop_images/login-page.png)
 
 ---
 
@@ -68,7 +68,7 @@ Use the **user credentials** your facilitator provided. After login, confirm you
 
 Click **Models** in the left sidebar. You will see a catalog of available AIMs — AMD-packaged model servers for a wide range of model families (Llama, Mistral, Gemma, Deepseek and more).
 
-![AI Workbench model catalog](images/04-workbench/01-models-catalog.png)
+![AI Workbench model catalog](aai_workshop_images/01-models-catalog.png)
 
 Each card shows the model name, size, and family. AMD has pre-configured the serving stack, hardware tuning, and memory layout for each — you do not configure any of this manually.
 
@@ -80,21 +80,23 @@ Each card shows the model name, size, and family. AMD has pre-configured the ser
 
 <!-- TODO: pick an non gated model that can be finetuned This comment will not appear in the rendered Markdown -->
 
-![Model card deploy menu](images/04-workbench/02-model-card-deploy-menu.png)
+![Model card deploy menu](aai_workshop_images/02-model-card-deploy-menu.png)
+
+> **Note:** You may see fewer models than shown here. Administrators control which models are available to each user, so your menu will only display the models you have been granted access to.
 
 ### Configure the Deployment
 
 In the deployment panel:
 
-![Deployment configuration panel](images/04-workbench/03-deploy-config-panel.png)
+![Deployment configuration panel](aai_workshop_images/03-deploy-config-panel.png)
 
 - **Performance metric** — Select **Latency** for this workshop
 
-![Performance dropdown](images/04-workbench/04-deploy-performance-dropdown-new.png)
+![Performance dropdown](aai_workshop_images/04-deploy-performance-dropdown.png)
 
 - If the model shows a lock icon (gated model), a Hugging Face token field appears. Click **Select existing token** to use the pre-configured secret from Resource Manager.
 
-![Hugging Face token prompt](images/04-workbench/05-hf-token-prompt.png)
+![Hugging Face token prompt](aai_workshop_images/05-hf-token-prompt.png)
 
 Click **Deploy**.
 
@@ -143,18 +145,20 @@ Autoscaling automatically adjusts the number of running model replicas based on 
 
 When deploying a model (Step 1B), locate the **Autoscaling** section in the deployment drawer and toggle **Enable autoscaling** on:
 
-![Autoscaling configuration panel](images/04-workbench/autoscaling.png)
+![Autoscaling configuration panel](aai_workshop_images/autoscaling.png)
 
 Configure the following parameters:
 
 | Parameter | Recommended Value | What It Does |
 |---|---|---|
 | **Min replicas** | 1 | Minimum replicas always running — ensures baseline capacity even at zero traffic |
-| **Max replicas** | 3 | Upper bound — prevents runaway resource use; constrained by your project's GPU quota |
+| **Max replicas** | **1** | Upper bound — prevents runaway resource use; constrained by your project's GPU quota |
 | **Scaling metric** | Running requests (default) | The vLLM signal used to drive scaling decisions |
 | **Aggregation** | Average (default) | How metric values are combined across all running pods |
 | **Target type** | Absolute value (default) | How the target threshold is interpreted |
 | **Target value** | 10 (default) | Scale up when total running requests across all pods exceed this number |
+
+> **Important — GPU capacity limit:** For this workshop, set **Max replicas to 1**. Each participant project has a limited GPU quota shared across the lab environment. If you set a higher max, the autoscaler may attempt to schedule additional replicas that exceed your quota — the workload will hang in a pending state and never run. Keep it at 1 to ensure your deployment starts successfully.
 
 ### How It Works
 
@@ -185,10 +189,10 @@ Fine-tuning adapts a general-purpose model to your domain — your terminology, 
 
 ## Step 2A: Upload Training Data
 
-Your training data needs to be in **JSONL format** — one JSON object per line, where each object contains a prompt/response pair. A sample dataset is provided by your facilitator at:
+Your training data needs to be in **JSONL format** — one JSON object per line, where each object contains a prompt/response pair. A sample dataset is provided by your facilitator in the subfolder **dataset**:
 
 ```
-https://github.com/isab8liu-alum/eai-suite-guides/blob/main/dataset/sft-demo-data.jsonl
+main/dataset/sft-demo-data.jsonl
 ```
 <!--  TODO: update this to actual dev repo dataset. This comment will not appear in the rendered Markdown -->
 
@@ -197,7 +201,7 @@ In AMD AI Workbench:
 1. Click **Datasets** in the left sidebar
 2. Click **Upload**
 
-![Dataset upload interface](images/04-workbench/uploading_dataset_finetuning.png)
+![Dataset upload interface](aai_workshop_images/uploading_dataset_finetuning.png)
 
 3. Fill in:
    - **Dataset name** — e.g., `workshop-demo-data`
@@ -217,20 +221,23 @@ In AMD AI Workbench:
 
 1. Click **Models** in the left sidebar → switch to the **Custom Models** tab
 
-![Custom Models view](images/04-workbench/workbench_custom_models_view.png)
+![Custom Models view](aai_workshop_images/workbench_custom_models_view.png)
 
 2. Click **Fine-tune model**
 
-![Fine-tune model configuration panel](images/04-workbench/finetune_model_menu-new.png)
+![Fine-tune model configuration panel](aai_workshop_images/finetune_model_menu.png)
 
 3. Configure the fine-tuning job:
 
+![Create fine-tuned model panel](aai_workshop_images/finetune_create_model_panel.png)
+
 | Setting | Value | Notes |
 |---|---|---|
-| **Base model** | Select the model gemma-3-27b-it | The starting point — your dataset teaches it new behavior |
-| **Dataset** | `workshop-demo-data` | The training data you uploaded in Step 2A |
+| **Model name** | Any unique name (letters, numbers, underscores, periods, dashes) | Used to identify your custom model |
+| **Base model** | `meta-llama/Llama-3.2-1B-Instruct` | The starting point — your dataset teaches it new behavior |
+| **Training dataset** | `workshop-demo-data` | The training data you uploaded in Step 2A |
 
-Leave the Advanced Settings on default menu. Or for the sake of time, put value of 1 for Batch size and Number of epochs
+Leave the Advanced Settings on default. Or for the sake of time, set **Batch size** and **Number of epochs** to `1`.
 
 
 1. Click **Start training**
@@ -247,11 +254,17 @@ Leave the Advanced Settings on default menu. Or for the sake of time, put value 
 
 Once training completes, the custom model appears in the **Custom Models** tab in the **Models** side menu.
 
-1. Right click the three dots  on your fine-tuned model — then select **Deploy** - it deploys exactly like any other AIM
-2. Wait for status to show **Running**
-3. Navigate to **Deployed Models** tab.
-4. Click **Chat** and ask it questions from the training domain
-<!-- TODO update steps here. This comment will not appear in the rendered Markdown -->   
+1. Click the **three-dot menu (⋮)** on your fine-tuned model — then select **Deploy**
+
+![Fine-tuned model deploy menu](aai_workshop_images/finetune_model_deployment_menu.png)
+
+2. In the deployment panel, configure as follows:
+  
+   - **Autoscaling** — **Leave disabled** (do not enable autoscaling for this deployment — the workshop environment has limited GPU quota and enabling autoscaling may cause your deployment to stall in a pending state)
+
+3. Click **Deploy** and wait for status to show **Running**
+4. Navigate to the **Deployed Models** tab
+5. Click **Chat** and ask it questions from the training domain
 
 
 Compare the fine-tuned model's responses against the base model from Part 1. The fine-tuned model should show noticeably better alignment with your domain terminology and the response style captured in the training data.
@@ -297,7 +310,7 @@ Click **Workspaces** in the left sidebar, then click on the VSCode workspace car
 
 In the workspace configuration panel:
 
-![Workspace custom resource allocation](images/04-workbench/workspace-deploy-custom-resource-allocation.png)
+![Workspace custom resource allocation](aai_workshop_images/workspace-deploy-custom-resource-allocation.png)
 
 - **Name** — e.g., `bench-workspace`
 - **CPU/Memory** — leave defaults for the workshop
@@ -339,7 +352,7 @@ python -m vllm.entrypoints.openai.run_bench \
 > - `--max-concurrency 10` — simulates 10 simultaneous users
 > - `--input-len 256` / `--output-len 128` — controls the size of synthetic prompts and responses
 
-![vLLM bench serve output](images/04-workbench/bench_serve.png)
+![vLLM bench serve output](aai_workshop_images/bench_serve.png)
 
 > **Shorthand alias:** If `vllm bench serve` appears in the workspace documentation, it is an alias for the same Python entrypoint. Use the `python -m` form above if the shorthand is not found in PATH.
 
@@ -404,12 +417,12 @@ In this section you will tour the user workflow. Your instructor will also demo 
 
 Open a browser and navigate to the Resource Manager URL provided by your facilitator:
 
-- Format: `https://airm.<your-domain>` or the IP-based URL on your workshop sheet
-<!-- TODO update this url This comment will not appear in the rendered Markdown -->
+- Format: `https://airmui.aai.silogen.ai/` or the IP-based URL on your workshop sheet
+
 
 Use the **login credentials** your facilitator provided.
 
-![Resource Manager dashboard overview](images/03-resource-manager/01-dashboard-overview-new.png)
+![Resource Manager dashboard overview](aai_workshop_images/01-dashboard-overview-rm.png)
 
 The dashboard has two sections:
 
@@ -419,82 +432,101 @@ The dashboard has two sections:
 
 ---
 
-## Step 4B: Create a Project
+## Step 4B: Explore the Projects Page
 
 Projects are the primary isolation boundary. Each team or use case gets its own project with its own quota, users, secrets, and storage.
 
-Click **Projects** in the left sidebar, then click **Create Project**.
+Click **Projects** in the left sidebar to see all projects in the cluster.
 
-![Projects page](images/03-resource-manager/02-projects-page.png)
+![Resource Manager projects page](aai_workshop_images/rm-projects-page-view-only.png)
 
-In the **Create Project** dialog:
+The projects list shows every project provisioned on the cluster, with a summary of its resource allocation:
 
-![Create Project dialog (empty)](images/03-resource-manager/03-create-project-dialog.png)
-
-Fill in:
-- **Project Name** — use your first name or team name (e.g., `workshop-yourname`)
-- **Description** — optional, but useful for multi-team environments
-
-![Create Project dialog (filled)](images/03-resource-manager/04-create-project-filled.png)
-
-Click **Create**. The new project appears in the list and is immediately ready for quota configuration.
-
----
-
-## Step 4C: View Resource Quotas
-
-Click your new project to open its detail view, then click the **Quota** tab.
-
-![Quota configuration tab](images/03-resource-manager/05-quota-tab.png)
-
-> **Note:** In this workshop environment, quota values are pre-configured by the cluster admin and are read-only for your account. You can view the current limits but will not be able to modify them.
-
-The quota tab shows limits set for the project:
-
-| Resource | What It Controls |
+| Column | What It Shows |
 |---|---|
-| **GPU Limit** | Hard ceiling on simultaneous GPU usage — prevents any one team from monopolizing cluster GPUs |
-| **CPU Limit** | Maximum CPU cores the project can consume |
-| **Memory Limit** | Maximum RAM |
-| **Storage** | Total PVC storage available |
+| **Project** | The project name — typically named by team, use case, or workshop participant |
+| **Status** | Whether the project is **Ready** (fully provisioned and accepting workloads) |
+| **GPU Allocation** | Number of GPUs allocated to the project and what share of total cluster GPU capacity that represents |
+| **CPU Allocation** | CPU cores allocated, shown as a count and cluster percentage |
+| **Memory Allocation** | RAM allocated, shown in GB and cluster percentage |
 
-> **Understanding quota enforcement:** The platform supports *quota bursting* — a project can temporarily use slack cluster capacity beyond its set limit when additional resources are available. However, **when the cluster is under contention, no project is allowed to exceed its quota and displace another team's workloads.** The quota you see here is both the floor (your team is assured at least this much) and the enforced ceiling under contention.
+> **Admin demo only — Creating projects:** Your account has read access to the Projects page. Creating and managing projects is an administrator function. Your facilitator will now demonstrate how to create a new project, set its name and description, and assign it a resource quota.
 
 ---
 
-## Step 4D: Add a Secret 
-<!--check if users can do this-->
+## Step 4C: Explore Your Project
 
-Secrets allow you to securely distribute credentials — like a Hugging Face API token for downloading gated models — to all workloads in a project, without users ever seeing the raw token value.
+Double-click your assigned project in the list to open its detail view.
 
-Click the **Secrets** tab inside your project, then click the **Add** dropdown.
+![Project overview page](aai_workshop_images/user-project-view-page.png)
 
-![Secrets tab with Add dropdown](images/03-resource-manager/06-secrets-tab-add-menu.png)
+The project overview shows live resource consumption at a glance:
 
-Select **Hugging Face Token**. In the **Create Secret** dialog that appears:
+| Panel | What It Shows |
+|---|---|
+| **Workloads in project** | Total workload count and their current states (Running, Pending, etc.) |
+| **Wait Time (Avg)** | How long workloads have been waiting for GPU resources to become available |
+| **Quota Utilization (Avg)** | How much of the project's guaranteed quota is currently in use |
+| **GPU Idle Time (Avg)** | Time GPUs have been allocated but not actively computing — useful for identifying waste |
+| **GPU Device Usage** | Current number of GPUs in active use |
+| **GPU VRAM Usage** | Memory consumed across allocated GPUs, shown against the project's total allocation |
 
-![Create secret dialog](images/03-resource-manager/07-assign-secret-dialog.png)
+The **Workloads** table at the bottom lists every running or queued job in the project — name, type, status, GPU count, VRAM, creation time, run duration, and the user who submitted it.
 
-- **Secret name** — a memorable label (e.g., `hf-token`)
-- **Token** — paste the Hugging Face token your facilitator provided
+---
 
-Click **Create**. The secret is stored in the cluster's secret store — it will appear in Workbench's deployment panel whenever a gated model requires authentication.
+## Step 4D: View Resource Quotas
 
-![Secret successfully created](images/03-resource-manager/08-secret-assigned.png)
+To view quota settings, click the **Actions** button in the top-right corner of the project page.
 
-> **Security note:** Once saved, the token value is never shown again in the UI. Users in the project can _use_ the secret (it is injected as an environment variable into model containers) but cannot read the raw value.
+![Project actions menu](aai_workshop_images/user-project-actions-menu.png)
 
-### Assigning a MinIO/S3 Storage Secret
+> **Note — Limited permissions:** As a team member, you will see the tooltip *"Team Members can only view the project and its resources."* The **Edit settings** and **Delete** options are visible but restricted. Select **Edit settings** to open the Project settings in read-only mode.
 
-For teams that need to access shared dataset or model artifact buckets, you can also add object storage credentials. Click **Add** again and select **MinIO / S3 Compatible**.
+In the **Project settings** panel, click the **Quota** tab.
 
-If you are **creating a new MinIO secret**, the dialog prompts you for a secret name, bucket endpoint, access key, and secret key. Fill in the fields and click **Create** — the credential is stored and available to any workload in the project.
+![Quota settings — read-only view](aai_workshop_images/user-project-quota-view-only.png)
 
-If the MinIO credentials already exist in the cluster (created by an admin at cluster setup), you will instead see an **Assign Existing Secret** panel where you select the pre-created credential from a list and assign it to your project. The screenshot below shows this workflow:
+The quota table shows two values for each resource:
 
-![Assign MinIO secret to project](images/03-resource-manager/07-assign-secret-minio.png)
+| Column | What It Means |
+|---|---|
+| **Guaranteed Allocation** | Resources reserved exclusively for this project — always available, even when the cluster is busy |
+| **Available to Allocate** | Slack capacity across the cluster that this project could temporarily use if demand spikes |
 
-Either way, the resulting secret can be mounted into workspaces and fine-tuning jobs as environment variables — users access the bucket without ever handling the raw credentials.
+> **Understanding quota enforcement:** The platform supports *quota bursting* — a project can temporarily use slack cluster capacity beyond its guaranteed allocation when additional resources are available. However, **when the cluster is under contention, no project can exceed its guaranteed quota and displace another team's workloads.** The guaranteed allocation is both the floor your team is assured and the enforced ceiling under contention.
+
+> **Note:** The Project settings panel also includes **Secrets**, **Storage**, **Users**, and **Details** tabs. As a team member, you can view the contents of these tabs but cannot make changes.
+
+### Admin demo — Configuring Quotas and Managing Secrets
+
+The steps below are performed by a **cluster administrator**. Your account does not have permission to complete them, but please follow along as your facilitator demonstrates.
+
+**Quota configuration (admin only)**
+
+Administrators set the guaranteed resource allocation for each project from the same **Quota** tab you just viewed. They can adjust GPU, CPU, memory, and disk limits at any time — changes take effect immediately and apply to all subsequent workloads in the project.
+
+**Secrets (admin only)**
+
+Secrets let administrators distribute credentials — such as a Hugging Face API token for gated models — to all workloads in a project without users ever handling the raw token value.
+
+From the **Secrets** tab, an admin clicks **Add** → **Hugging Face Token**:
+
+![Secrets tab with Add dropdown](aai_workshop_images/06-secrets-tab-add-menu.png)
+
+In the dialog, the admin provides a name and pastes the token:
+
+![Create secret dialog](aai_workshop_images/07-assign-secret-dialog.png)
+
+Once saved, the token value is never shown again in the UI. The secret appears in Workbench's deployment panel whenever a gated model requires authentication — users can use the secret without ever seeing its value.
+
+![Secret successfully created](aai_workshop_images/08-secret-assigned.png)
+
+For teams that need access to shared dataset or model artifact storage, admins can also assign object storage credentials under **Add** → **MinIO / S3 Compatible**. If the credentials already exist at the cluster level, the admin assigns them to the project from a list rather than re-entering the values:
+
+![Assign MinIO secret to project](aai_workshop_images/07-assign-secret-minio.png)
+
+The resulting secret is mounted as environment variables into workspaces and fine-tuning jobs — workloads access the bucket automatically without users handling raw credentials.
 
 ---
 

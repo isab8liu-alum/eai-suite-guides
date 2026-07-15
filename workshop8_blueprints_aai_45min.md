@@ -429,7 +429,7 @@ This opens a live dashboard scoped to your namespace. Pods will initially show `
 
 > **k9s tips:** Use the arrow keys to navigate between pods. Press `d` to describe a pod (useful for troubleshooting), `l` to stream its logs, and `:q` to exit.
 
-![Blueprint deployment in progress](images/blueprints/blueprint-wsl-deployment.png)
+![Blueprint deployment in progress](aai_workshop_images/blueprint-wsl-deployment.png)
 
 ### Access the MRI Documentation Application
 
@@ -598,7 +598,7 @@ Open a browser and navigate to the AI Workbench URL provided by your facilitator
 
 Use the login credentials your facilitator provided. After login, confirm you are in the correct **project** — look for the project name in the top navigation bar.
 
-![AMD AI Workbench login page](images/01-overview/login-page.png)
+![AMD AI Workbench login page](aai_workshop_images/login-page.png)
 
 ---
 
@@ -608,7 +608,7 @@ Use the login credentials your facilitator provided. After login, confirm you ar
 
 Click **Models** in the left sidebar. You will see a catalog of available AI models.
 
-![AI Workbench model catalog](images/04-workbench/01-models-catalog.png)
+![AI Workbench model catalog](aai_workshop_images/01-models-catalog.png)
 
 Each card represents an AIM — a model that AMD has pre-packaged with the optimal serving configuration for AMD hardware. You do not need to worry about model weights, GPU configuration, or serving frameworks.
 
@@ -618,22 +618,22 @@ Each card represents an AIM — a model that AMD has pre-packaged with the optim
 2. Click the **three-dot menu (⋮)** in the bottom-right corner of the model card
 3. Select **Deploy**
 
-![Model card three-dot menu with Deploy option](images/04-workbench/02-model-card-deploy-menu.png)
+![Model card three-dot menu with Deploy option](aai_workshop_images/02-model-card-deploy-menu.png)
 
 ### Configure the Deployment
 
 In the **Deployment Settings** panel that appears:
 
-![Deployment configuration panel](images/04-workbench/03-deploy-config-panel.png)
+![Deployment configuration panel](aai_workshop_images/03-deploy-config-panel.png)
 
 - **Performance metric** — Select **Latency** for this workshop (optimizes for fast, interactive responses)
 
-![Performance metric dropdown](images/04-workbench/04-deploy-performance-dropdown.png)
+![Performance metric dropdown](aai_workshop_images/04-deploy-performance-dropdown.png)
 
 - **Unoptimized deployment** — Leave this **off**
 - If the model shows a **lock icon** (gated model, e.g., Llama family), a Hugging Face authentication section appears. Click **Select existing token** to use the pre-configured workshop token.
 
-![Hugging Face token prompt for gated models](images/04-workbench/05-hf-token-prompt.png)
+![Hugging Face token prompt for gated models](aai_workshop_images/05-hf-token-prompt.png)
 
 Click **Deploy**. A confirmation message will appear.
 
