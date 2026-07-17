@@ -17,3 +17,5 @@ __pycache__/
 
 # Test images
 *-test.png
+.codex*
+.claude*
