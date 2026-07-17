@@ -5,7 +5,8 @@
       "Bash(python redact_table_info.py)",
       "Bash(python analyze_image.py)",
       "Bash(python find_text_location.py)",
-      "Bash(python find_all_light_pixels.py)"
+      "Bash(python find_all_light_pixels.py)",
+      "mcp__github-new__get_file_content_filtered"
     ]
   }
 }

@@ -204,7 +204,7 @@ spec:
     spec:
       containers:
         - name: minimal-aim-deployment
-          image: amdenterpriseai/aim-google-gemma-3-27b-it:0.11.0
+          image: amdenterpriseai/aim-google-gemma-3-1b-it:0.12.0
           imagePullPolicy: Always
           env:
             - name: AIM_PRECISION
@@ -297,7 +297,7 @@ Apply both manifests to your namespace:
 kubectl apply -f aai-test-deployment.yaml -f aai-test-service.yaml -n $namespace
 ```
 
-> **Why Gemma 3 27B?** This AIM image is packaged and optimized for AMD Instinct GPUs. It can take several minutes to download model weights, compile kernels, and pass its startup probe on first launch.
+> **Why Gemma 3 1B?** This AIM image is packaged and optimized for AMD Instinct GPUs. It can take several minutes to download model weights, compile kernels, and pass its startup probe on first launch.
 
 Watch the AIM come up:
 
@@ -346,7 +346,7 @@ Then send a test inference request:
 curl http://localhost:8000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "google/gemma-3-27b-it",
+    "model": "google/gemma-3-1b-it",
     "messages": [{"role": "user", "content": "Summarize the key benefits of AMD MI300X GPUs in two sentences."}],
     "max_tokens": 150
   }'
@@ -404,20 +404,24 @@ name="my-deployment"       # A unique label for your Blueprint deployment
 chart="aimsb-mri-doc"      # The MRI Documentation Blueprint
 ```
 
-<!-- what namespace value? tied to each project? This comment will not appear in the rendered Markdown -->
-
 ### Deploy
+
+Deploy the Blueprint pointed at the AIM you deployed in Part 1, with HTTP routing enabled so the application is reachable through the cluster gateway:
 
 ```bash
 helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
+  --set llm.existingService=$aimservice \
+  --set http_route.enabled=true \
   | kubectl apply -f - -n $namespace
 ```
 
 > **What does this do?**
-> - `helm template` downloads the Blueprint chart from AMD's registry and converts it into Kubernetes configuration files
-> - `kubectl apply` sends those configurations to the cluster, creating the application's UI, backend, networking, and a bundled AIM
->
-> **What is the bundled AIM?** Each Blueprint ships with a default AIM configuration — a pre-selected model that the Blueprint is tested and optimized against. Deploying without overrides uses this default, so the application works immediately with no extra setup.
+> - `helm template` downloads the Blueprint chart from AMD's registry and renders it into Kubernetes configuration files
+> - `--set llm.existingService=$aimservice` points the Blueprint at the Gemma 3 AIM service you deployed in Part 1 — no second model pod is created
+> - `--set http_route.enabled=true` creates a Kubernetes `HTTPRoute` resource so the Blueprint UI is accessible through the cluster's Envoy Gateway (no port-forwarding required)
+> - `kubectl apply` sends the rendered configuration to the cluster
+
+> **Prerequisites for HTTPRoute:** The cluster must have a Gateway API-compatible gateway (e.g., Envoy Gateway) with a gateway named `https` in the `envoy-gateway-system` namespace. Your facilitator will confirm this is available in the workshop environment.
 
 ### Verify the Deployment
 
@@ -433,15 +437,19 @@ This opens a live dashboard scoped to your namespace. Pods will initially show `
 
 ### Access the MRI Documentation Application
 
-Once all pods are Running, open a port-forward to view the application:
+Once all pods are Running, get the application URL from the gateway:
 
 ```bash
-kubectl port-forward services/aimsb-mri-doc-$name 7861:80 -n $namespace
+echo "https://aimsb-mri-doc-$name$(kubectl get gtw -A -o jsonpath='{.items[*].spec.listeners[?(@.name=="https")].hostname}' | tr -d \*)/"
 ```
 
-Open your browser to **http://localhost:7861**
+Open the printed URL in your browser. You should see the MRI Documentation interface. Try uploading a sample report or asking it a question about an imaging study.
 
-You should see the MRI Documentation interface. Try uploading a sample report or asking it a question about an imaging study.
+> **If HTTPRoute is not available** in your environment, fall back to port-forwarding:
+> ```bash
+> kubectl port-forward services/aimsb-mri-doc-$name 7861:80 -n $namespace
+> ```
+> Then open **http://localhost:7861**.
 
 ---
 
@@ -476,7 +484,11 @@ Then open **http://localhost:7861** in your browser. The Blueprint is now powere
 
 > **Why does this matter?** Running a separate model per application wastes GPU resources and creates management complexity. By pointing Blueprints at a shared AIM, your team gets one model to monitor, update, and scale — and every application benefits automatically. This is also how you would swap in a different model without rebuilding the Blueprint.
 
-**2. Upgrade the Image Segmentation Model (UNet via MONAI)**
+**2. Change the System Prompt**
+
+Each Blueprint exposes prompt configuration. Edit the system prompt to adapt the AI's output style — for example, switching from radiologist-facing technical language to patient-friendly plain-English summaries, or restricting responses to a specific imaging modality (MRI, CT, X-ray).
+
+**3. Upgrade the Image Segmentation Model (UNet via MONAI) *(optional)***
 
 The Blueprint currently segments brain tissue using simple K-means clustering inside `segment_brain_tissue()` in `src/mri_analysis.py`. You can replace this with a deep learning UNet model from a [MONAI bundle](https://monai.io/model-zoo.html) for clinical-grade accuracy — identifying tumor boundaries, organ contours, and tissue types with far greater precision.
 
@@ -487,30 +499,59 @@ git clone https://github.com/amd-enterprise-ai/solution-blueprints.git
 cd solution-blueprints/solution-blueprints/mri-doc
 ```
 
-Open `src/mri_analysis.py` and find the `segment_brain_tissue()` function. The current K-means implementation looks like this:
+**Step 1 — Add dependencies to `src/requirements.txt`**
+
+The Blueprint installs Python packages fresh on every pod start from `src/requirements.txt` (there is no pre-built container image — code is embedded in a Kubernetes ConfigMap via Helm). Add `monai` and `torch` before deploying:
+
+```
+monai
+torch
+```
+
+> **Note:** PyTorch is several GB. The first pod startup after this change will take 5–15 minutes while packages are downloaded and installed inside the container.
+
+**Step 2 — Edit `src/mri_analysis.py`**
+
+Open `src/mri_analysis.py` and find the `segment_brain_tissue()` method inside the `MRIProcessor` class. The current K-means implementation looks like this:
 
 ```python
-# Current: simple K-means clustering (class method inside MRIAnalyzer)
-def segment_brain_tissue(self, image, n_clusters=4):
-    pixels = image.reshape(-1, 1).astype(np.float32)
-    kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
-    kmeans.fit(pixels)
-    labels = kmeans.labels_.reshape(image.shape)
-    segmented = labels.astype(np.float32) / (n_clusters - 1)
-    tissue_stats = {"n_clusters": n_clusters}
+# Current: simple K-means clustering (class method inside MRIProcessor)
+def segment_brain_tissue(self, image):
+    """Segment tissue using K-means clustering."""
+    if image is None:
+        return None, {}
+
+    from sklearn.cluster import KMeans
+
+    pixels = image.reshape((-1, 1))
+    kmeans = KMeans(n_clusters=4, random_state=42, n_init=10)
+    labels = kmeans.fit_predict(pixels)
+    segmented = labels.reshape(image.shape)
+
+    unique, counts = np.unique(labels, return_counts=True)
+    total_pixels = len(pixels)
+
+    tissue_stats = {}
+    for cluster, count in zip(unique, counts):
+        percentage = (count / total_pixels) * 100
+        tissue_stats[f"Tissue_Cluster_{cluster}"] = {"pixel_count": int(count), "percentage": round(percentage, 2)}
+
     return segmented, tissue_stats
 ```
 
 Replace it with a MONAI UNet inference call. The method must remain a class method with the same signature and return the same `(segmented, tissue_stats)` tuple so the rest of the class continues to work:
 
 ```python
-# Upgraded: MONAI UNet from a pretrained bundle (class method inside MRIAnalyzer)
-import torch
-from monai.networks.nets import UNet
-from monai.transforms import Compose, ScaleIntensity, EnsureChannelFirst, ToTensor
+# Upgraded: MONAI UNet from a pretrained bundle (class method inside MRIProcessor)
+def segment_brain_tissue(self, image, model_path="/tmp/brain_segmentation_unet.pth"):
+    import torch
+    from monai.networks.nets import UNet
+    from monai.transforms import Compose, EnsureChannelFirst, ScaleIntensity, ToTensor
 
-def segment_brain_tissue(self, image, model_path="models/brain_segmentation_unet.pth"):
-    # Load pretrained UNet (download bundle from MONAI Model Zoo)
+    if image is None:
+        return None, {}
+
+    # Load pretrained UNet
     model = UNet(
         spatial_dims=2,
         in_channels=1,
@@ -521,22 +562,72 @@ def segment_brain_tissue(self, image, model_path="models/brain_segmentation_unet
     model.load_state_dict(torch.load(model_path, map_location="cpu"))
     model.eval()
 
-    transform = Compose([EnsureChannelFirst(), ScaleIntensity(), ToTensor()])
-    input_tensor = transform(image).unsqueeze(0)   # add batch dim
+    # channel_dim="no_channel" is required for plain 2D numpy arrays (MONAI 1.x)
+    transform = Compose([EnsureChannelFirst(channel_dim="no_channel"), ScaleIntensity(), ToTensor()])
+    input_tensor = transform(image).unsqueeze(0)   # add batch dim → (1, 1, H, W)
 
     with torch.no_grad():
         output = model(input_tensor)
     labels = output.argmax(dim=1).squeeze().numpy()
     segmented = labels.astype(np.float32) / 2          # normalise to [0, 1] for 3 classes
-    tissue_stats = {"n_clusters": 3}
+
+    # Return tissue_stats in the same format as the K-means implementation
+    unique, counts = np.unique(labels, return_counts=True)
+    total_pixels = labels.size
+    tissue_stats = {}
+    for cluster, count in zip(unique, counts):
+        percentage = (count / total_pixels) * 100
+        tissue_stats[f"Tissue_Cluster_{int(cluster)}"] = {
+            "pixel_count": int(count),
+            "percentage": round(float(percentage), 2),
+        }
+
     return segmented, tissue_stats
 ```
 
-Download a pretrained bundle from the MONAI Model Zoo and save the weights to `models/brain_segmentation_unet.pth`, then rebuild and redeploy the Blueprint container. The application will now use deep learning segmentation on every uploaded scan.
+**Step 3 — Download and stage the model weights**
 
-**3. Change the System Prompt**
+Download a pretrained brain segmentation bundle from the MONAI Model Zoo. Run this on your local machine (outside the pod) before copying the weights in:
 
-Each Blueprint exposes prompt configuration. Edit the system prompt to adapt the AI's output style — for example, switching from radiologist-facing technical language to patient-friendly plain-English summaries, or restricting responses to a specific imaging modality (MRI, CT, X-ray).
+```bash
+# Download the pretrained bundle weights locally
+python3 -c "
+from monai.bundle import download
+download('brain_image_segmentation', bundle_dir='/tmp/monai_bundle')
+"
+# Find the downloaded .pt/.pth weights file
+find /tmp/monai_bundle -name "*.pt" -o -name "*.pth"
+```
+
+> **Note:** The bundle download path and filename will depend on the bundle version. Use the path printed by the `find` command in the `kubectl cp` step below.
+
+The pod uses ephemeral storage, so copy the weights into the running pod directly:
+
+```bash
+# Find the pod name
+kubectl get pods -n $namespace -l app=aimsb-mri-doc-$name
+
+# Copy weights into the pod (replace <weights-file> with the path from the find command above)
+kubectl cp /tmp/monai_bundle/<weights-file> \
+  $namespace/<pod-name>:/tmp/brain_segmentation_unet.pth
+```
+
+> **Note:** Weights copied this way are lost on pod restart. For a durable setup, pre-seed a PersistentVolumeClaim or download the weights inside a startup script in `values.yaml`.
+
+**Step 4 — Redeploy via Helm**
+
+There is no container image to build — the Blueprint packages `src/*.py` and `src/requirements.txt` directly into a ConfigMap. Confirm you are still in the `mri-doc` directory, then re-run `helm upgrade` to push your changes:
+
+```bash
+# Confirm you are in the right directory
+pwd   # should end with solution-blueprints/mri-doc
+
+helm upgrade $name oci://registry-1.docker.io/amdenterpriseai/$chart \
+  --set llm.existingService=$aimservice \
+  -f values.yaml -n $namespace
+```
+
+The pod will restart, install the updated dependencies, and mount the new code. The application will now use deep learning segmentation on every uploaded scan.
 
 **4. Deploy a Different Blueprint for Your Use Case**
 
