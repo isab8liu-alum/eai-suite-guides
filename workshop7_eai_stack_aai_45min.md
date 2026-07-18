@@ -120,7 +120,9 @@ Wait for the status to change to **Running**.
 
 ### Explore Live Metrics
 
-Once running, click the model name or **Open Details** to see the real-time metrics dashboard:
+Once the model is running, click the **three-dot menu** on the right side of the model row and select **Open Details** to view the real-time metrics dashboard:
+
+![Workbench deployed model menu with Open Details option](aai_workshop_images/workbench-dashboard-model-open-details.png)
 
 | SLA Metric | What It Tells You |
 |---|---|
@@ -141,9 +143,12 @@ From the model details page, click **Chat**. Ask a question and observe:
 
 ---
 
-## Step 1D: Configure Autoscaling
+## Step 1D: Configure Autoscaling 
+
+> **Important — GPU capacity limit:** For this workshop, please do not configure autoscaling since each participant project has a limited GPU quota shared across the lab environment. If you would like to try it in the developer zone, set **Max replicas to 1**. If you set a higher max, the autoscaler may attempt to schedule additional replicas that exceed your quota — the workload will hang in a pending state and never run. Keep it at 1 to ensure your deployment starts successfully.
 
 Autoscaling automatically adjusts the number of running model replicas based on real-time demand — scaling up during traffic spikes and back down during low usage, so you only consume GPU resources when you need them.
+
 
 > **Important:** Autoscaling must be enabled **at deployment time** — you cannot enable it on an existing deployment. If it was enabled at deploy time, you can update its parameters later via **Settings** on the workload detail page.
 
@@ -198,7 +203,7 @@ Fine-tuning adapts a general-purpose model to your domain — your terminology, 
 Your training data needs to be in **JSONL format** — one JSON object per line, where each object contains a prompt/response pair. A sample dataset is provided by your facilitator in the subfolder **dataset**:
 
 ```
-main/dataset/sft-demo-data.jsonl
+/dataset/sft-demo-data.jsonl
 ```
 <!--  TODO: update this to actual dev repo dataset. This comment will not appear in the rendered Markdown -->
 
