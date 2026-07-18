@@ -115,6 +115,12 @@ Verify all three installed correctly:
 kubectl version --client && helm version && k9s version
 ```
 
+TODO add 
+```bash
+brew install kubelogin
+kubectl oidc-login --help
+```
+
 ---
 
 ## Step 1B: Connect Your Terminal to the Workshop Cluster
@@ -137,12 +143,15 @@ export KUBECONFIG=~/.kube/demo_write.yaml
 kubectl get nodes
 ```
 
-**Expected output:** A list of cluster nodes with `Ready` status. If you see this, your terminal is connected to the cluster.
+**Expected output:** This should lead you to a login page. Enter the user credentials and password the workshop instructor has shared. 
 
+<!-- kubectl get nodes will work for admin login only
+A list of cluster nodes with `Ready` status. If you see this, your terminal is connected to the cluster.
+-->
 Also set your namespace - your facilitator will confirm your project number:
 
 ```bash
-namespace="project-<your project number>"   # Your assigned Kubernetes namespace
+namespace="proj<your project number>"   # Your assigned Kubernetes namespace, such as "proj1"
 ```
 
 ---
@@ -152,7 +161,7 @@ namespace="project-<your project number>"   # Your assigned Kubernetes namespace
 For this CLI exercise, you will deploy the AIM container directly with a native Kubernetes `Deployment`, then expose it with a Kubernetes `Service`. The model container serves an OpenAI-compatible API on port `8000`.
 
 The deployment does **not** put a Hugging Face token in the YAML. Instead, it reads `HF_TOKEN` from a Kubernetes Secret named `hf-token` in your namespace.
-
+<!--
 Verify the workshop Secret exists:
 
 ```bash
@@ -172,10 +181,13 @@ Expected output:
 ```text
 key: token
 ```
-
+this doesn't work! get error can't get secret-->
+<!-- 
 > **Facilitator setup:** For a public workshop, do not publish the Hugging Face token in this guide. Pre-create `hf-token` in every participant namespace with key `token`, or use External Secrets Operator / your platform secret manager to sync the same secret into each namespace. If a cluster uses a different key name, update the `secretKeyRef.key` field in the deployment YAML to match.
 
-<!-- TODO facilitator add hf-token to all project namespaces as kubernetes secrets -->
+TODO facilitator add hf-token to all project namespaces as kubernetes secrets -->
+
+Note: we have preloaded hf-tokens to all workshop participant's projects. <!-- TODO make this note better -->
 
 ---
 
