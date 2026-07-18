@@ -60,6 +60,10 @@ Use the **user credentials** your facilitator provided. After login, confirm you
 
 ![AMD AI Workbench login page](aai_workshop_images/login-page.png)
 
+Then select your project from the dropdown
+
+![AMD AI Workbench select project page](aai_workshop_images/workbench-project-select-dropdown.png)
+
 ---
 
 ## Step 1B: Deploy an AI Model
@@ -98,6 +102,8 @@ In the deployment panel:
 
 ![Hugging Face token prompt](aai_workshop_images/05-hf-token-prompt.png)
 
+> **Autoscaling** — **Leave disabled** (do not enable autoscaling for this deployment — the workshop environment has limited GPU quota and enabling autoscaling may cause your deployment to stall in a pending state)
+
 Click **Deploy**.
 
 ---
@@ -106,7 +112,7 @@ Click **Deploy**.
 
 ### Watch the Deployment Start
 
-Click **Workloads** in the left sidebar. Your model will show **Pending** or **Starting** while the platform schedules it on a GPU node and initializes the serving process. This typically takes 3–5 minutes.
+Click **Dashboard** in the left sidebar. Your model will show **Pending** or **Starting** while the platform schedules it on a GPU node and initializes the serving process. This typically takes 3–5 minutes.
 
 > **What is happening under the hood?** The platform is creating a Kubernetes pod on an AMD GPU node, pulling the AIM container image, and starting the vLLM serving process. GPU memory allocation and model weight loading happen during this initialization window.
 
