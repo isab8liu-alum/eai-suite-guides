@@ -359,18 +359,19 @@ curl http://localhost:8000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "model": "google/gemma-3-1b-it",
-    "messages": [{"role": "user", "content": "Summarize the key benefits of AMD MI300X GPUs in two sentences."}],
+    "messages": [{"role": "user", "content": "Summarize the key benefits of AMD MI350X GPUs in two sentences."}],
     "max_tokens": 150
   }'
 ```
 
 The response streams back in OpenAI-compatible format, meaning any application already written for OpenAI's API can point to this endpoint with no code changes.
-
+<!-- this doesn't work for user...kubectl get nodes and svc don't work
 Now note the AIM's internal service name. You will use it in Step 2B:
 
 ```bash
 kubectl get svc minimal-aim-deployment -n $namespace
 ```
+-->
 
 Set the service name as a variable:
 
@@ -426,6 +427,13 @@ helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
   --set http_route.enabled=true \
   | kubectl apply -f - -n $namespace
 ```
+
+<!--isabelleliu@Isabelles-Laptop .kube % echo "https://aimsb-mri-doc-$name$(kubectl get gtw -A -o jsonpath='{.items[*].spec.listeners[?(@.name=="https")].hostname}' | tr -d \*)/"
+Error from server (Forbidden): gateways.gateway.networking.k8s.io is forbidden: User "oidc:user1@aai.silogen.ai" cannot list resource "gateways" in API group "gateway.networking.k8s.io" at the cluster scope
+https://aimsb-mri-doc-my-deployment/
+isabelleliu@Isabelles-Laptop .kube % echo "https://aimsb-mri-doc-$name$(kubectl get gtw -A -o jsonpath='{.items[*].spec.listeners[?(@.name=="https")].hostname}' | tr -d \*)/"
+Error from server (Forbidden): gateways.gateway.networking.k8s.io is forbidden: User "oidc:user1@aai.silogen.ai" cannot list resource "gateways" in API group "gateway.networking.k8s.io" at the cluster scope
+https://aimsb-mri-doc-my-deployment/-->
 
 > **What does this do?**
 > - `helm template` downloads the Blueprint chart from AMD's registry and renders it into Kubernetes configuration files
