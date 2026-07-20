@@ -7,6 +7,20 @@
 
 ---
 
+## What You Will Build Today
+
+In this workshop you will experience the AMD Inference Microservices (AIMs) and Solution Blueprints — from deploying a healthcare focused AI application to customizing and extending it.
+
+You will:
+1. **Deploy an AIM via kubectl** — the CLI-native approach for launching a model on the cluster (gemma3-1b-it)
+2. **Deploy a complete medical imaging AI application** using a Solution Blueprint — pointed directly at the AIM you just deployed
+3. **Customize the Blueprint** — tear down the initial deployment and redeploy it with default AIM
+4. **(Optional)** Deploy and monitor an AI model through the AMD AI Workbench UI
+
+No deep Kubernetes or ML experience required. Every command is explained step by step.
+
+---
+
 ## System Setup: Preparing Your Laptop
 
 This workshop uses local terminal commands to install tools and connect to the cluster. The instructions are written for Linux; follow the section for your OS before starting Part 1.
@@ -40,19 +54,6 @@ The tools below are installed during Step 1A. For reference:
 | `helm` | Deploys Kubernetes applications (Blueprints) | Installed in Step 1A |
 | `k9s` | Visual terminal dashboard for the cluster | Installed in Step 1A |
 
----
-
-## What You Will Build Today
-
-In this workshop you will experience the AMD Inference Microservices (AIMs) and Solution Blueprints — from deploying a healthcare focused AI application to customizing and extending it.
-
-You will:
-1. **Deploy an AIM via kubectl** — the CLI-native approach for launching a model on the cluster
-2. **Deploy a complete medical imaging AI application** using a Solution Blueprint — pointed directly at the AIM you just deployed
-3. **Customize the Blueprint** — tear down the initial deployment and redeploy it connected to your shared AIM
-4. **(Optional)** Deploy and monitor an AI model through the AMD AI Workbench UI
-
-No deep Kubernetes or ML experience required. Every command is explained step by step.
 
 ---
 
@@ -424,9 +425,11 @@ Deploy the Blueprint pointed at the AIM you deployed in Part 1, with HTTP routin
 ```bash
 helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
   --set llm.existingService=$aimservice \
-  --set http_route.enabled=true \
   | kubectl apply -f - -n $namespace
 ```
+
+TODO add port forward the instructions 
+TODO test port forward on two different projects and computers
 
 <!--isabelleliu@Isabelles-Laptop .kube % echo "https://aimsb-mri-doc-$name$(kubectl get gtw -A -o jsonpath='{.items[*].spec.listeners[?(@.name=="https")].hostname}' | tr -d \*)/"
 Error from server (Forbidden): gateways.gateway.networking.k8s.io is forbidden: User "oidc:user1@aai.silogen.ai" cannot list resource "gateways" in API group "gateway.networking.k8s.io" at the cluster scope
@@ -438,7 +441,6 @@ https://aimsb-mri-doc-my-deployment/-->
 > **What does this do?**
 > - `helm template` downloads the Blueprint chart from AMD's registry and renders it into Kubernetes configuration files
 > - `--set llm.existingService=$aimservice` points the Blueprint at the Gemma 3 AIM service you deployed in Part 1 — no second model pod is created
-> - `--set http_route.enabled=true` creates a Kubernetes `HTTPRoute` resource so the Blueprint UI is accessible through the cluster's Envoy Gateway (no port-forwarding required)
 > - `kubectl apply` sends the rendered configuration to the cluster
 
 > **Prerequisites for HTTPRoute:** The cluster must have a Gateway API-compatible gateway (e.g., Envoy Gateway) with a gateway named `https` in the `envoy-gateway-system` namespace. Your facilitator will confirm this is available in the workshop environment.
@@ -477,7 +479,7 @@ Open the printed URL in your browser. You should see the MRI Documentation inter
 
 Blueprints are open-source — the source code is available on GitHub and every component can be modified. In this section you will tear down the current Blueprint deployment and redeploy it with a different configuration to see how easy customization is.
 
-**1. Tear Down and Redeploy with a Different AIM**
+**1. Tear Down and Redeploy with a Default AIM**
 
 Stop the port-forward (`Ctrl+C`) and delete the existing Blueprint:
 
@@ -486,11 +488,10 @@ helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
   | kubectl delete -f - -n $namespace
 ```
 
-Wait for pods to terminate (watch in k9s), then redeploy the Blueprint — this time pointing it at the Gemma 3 AIM service you deployed in Part 1:
+Wait for pods to terminate (watch in k9s), then redeploy the Blueprint — this time pointing it to the default AIMs in the helmchart (GPT-OSS-20B):
 
 ```bash
 helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
-  --set llm.existingService=$aimservice \
   | kubectl apply -f - -n $namespace
 ```
 

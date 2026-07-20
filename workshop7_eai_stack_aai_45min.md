@@ -19,11 +19,10 @@ This workshop runs entirely in the browser — no local commands are required. A
 This workshop takes you deep into the administrative and operational capabilities of the AMD Enterprise AI Software Stack through its two main management interfaces.
 
 You will:
-1. **Deploy and manage AI models** through AMD AI Workbench — observe live inference metrics, configure autoscaling, and chat with a running model
-2. **Fine-tune a model on your own data** — upload a training dataset and start a supervised fine-tuning job through the Workbench UI
-3. **(Bonus)** Tour the ComfyUI workspace for AI image generation
-4. **(Optional)** **Benchmark your model** with `vllm bench serve` — launch a VSCode workspace inside the platform and run a load test against your deployed model
-5. **Explore AMD Resource Manager** — view the admin control plane for projects, quotas, secrets, and storage
+1. **Kubernetes Concepts - Slides**
+2. **Deploy and manage AI models** through AMD AI Workbench — observe live inference metrics, configure autoscaling, and chat with a running model
+3. **Fine-tune a model on your own data** — upload a training dataset and start a supervised fine-tuning job through the Workbench UI
+4. **Explore AMD Resource Manager** — view the admin control plane for projects, quotas, secrets, and storage
 
 No Kubernetes, terminal, or ML engineering experience required.
 
@@ -187,6 +186,20 @@ Configure the following parameters:
 > **How autoscaling interacts with quotas:** Autoscaling scales within your project's GPU quota. If your quota allows 4 GPUs and each replica uses 1, autoscaling can create up to 4 replicas. When autoscaling borrows resources beyond a project's guaranteed quota, those pods may be preempted if other projects reclaim their allocation.
 
 You can validate autoscaling behavior later using the `vllm bench serve` load test in Part 3 (Optional) — increase concurrency and watch the replica count change in real time in the Workloads tab.
+
+## Undeploying an AIM
+
+When you're done with a deployed model, you should undeploy it to free up GPU resources.
+
+1. In the left sidebar, click **Models**
+2. Select the **Deployed Models** tab
+3. Find the model you want to undeploy and click the **⋮** (three-dot menu) on the right
+4. Click **Undeploy** (shown in red)
+
+![Undeploy AIM from Workbench](aai_workshop_images/workbench-undeploy-AIMs.png)
+
+> **Note:** Undeploying stops the model and releases the GPU allocation back to your project quota. Any running inference requests will be terminated.
+
 
 ---
 
@@ -537,7 +550,8 @@ For teams that need access to shared dataset or model artifact storage, admins c
 
 ![Assign MinIO secret to project](aai_workshop_images/07-assign-secret-minio.png)
 
-The resulting secret is mounted as environment variables into workspaces and fine-tuning jobs — workloads access the bucket automatically without users handling raw credentials.
+The resulting secret is mounted as environment variables into workspaces and fine-tuning jobs — workloads access the bucket automatically without users handling raw credentials.t
+
 
 ---
 
