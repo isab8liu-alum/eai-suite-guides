@@ -12,7 +12,7 @@
 In this workshop you will experience the AMD Inference Microservices (AIMs) and Solution Blueprints — from deploying a healthcare focused AI application to customizing and extending it.
 
 You will:
-1. **Deploy an AIM via kubectl** — the CLI-native approach for launching a model on the cluster (gemma3-1b-it)
+1. **Deploy an AIM via kubectl** — the CLI-native approach for launching a model on the cluster (llama-3.2-1b-instruct)
 2. **Deploy a complete medical imaging AI application** using a Solution Blueprint — pointed directly at the AIM you just deployed
 3. **Customize the Blueprint** — tear down the initial deployment and redeploy it with default AIM
 4. **(Optional)** Deploy and monitor an AI model through the AMD AI Workbench UI
@@ -116,7 +116,6 @@ Verify all three installed correctly:
 kubectl version --client && helm version && k9s version
 ```
 
-TODO add 
 ```bash
 brew install kubelogin
 kubectl oidc-login --help
@@ -130,17 +129,48 @@ Your facilitator will provide a **kubeconfig file** - a credential file that let
 
 Save the kubeconfig content to your machine:
 
+Create the kubeconfig file with the following content:
+
 ```bash
 mkdir -p ~/.kube
-nano ~/.kube/demo_write.yaml
-# Paste the kubeconfig content your facilitator provided
-# Save with: Ctrl+O, Enter, Ctrl+X
+cat > ~/.kube/kube_config_aai.yaml << 'EOF'
+apiVersion: v1
+clusters:
+- cluster:
+    insecure-skip-tls-verify: true
+    server: https://k8s.aai.silogen.ai
+  name: default
+contexts:
+- context:
+    cluster: default
+    user: default
+  name: default
+current-context: default
+kind: Config
+preferences: {}
+users:
+- name: default
+  user:
+    exec:
+      apiVersion: client.authentication.k8s.io/v1beta1
+      args:
+      - oidc-login
+      - get-token
+      - --oidc-issuer-url=https://kc.aai.silogen.ai/realms/airm
+      - --oidc-client-id=k8s
+      - --oidc-client-secret=0e2d1aac6a57d37957ffd7e0af144c89
+      - --insecure-skip-tls-verify
+      command: kubectl
+      env: null
+      interactiveMode: IfAvailable
+      provideClusterInfo: false
+EOF
 ```
 
 Activate it and verify the connection:
 
 ```bash
-export KUBECONFIG=~/.kube/demo_write.yaml
+export KUBECONFIG=~/.kube/kube_config_aai.yaml
 kubectl get nodes
 ```
 
@@ -188,7 +218,7 @@ this doesn't work! get error can't get secret-->
 
 TODO facilitator add hf-token to all project namespaces as kubernetes secrets -->
 
-Note: we have preloaded hf-tokens to all workshop participant's projects. <!-- TODO make this note better -->
+> **Note:** Hugging Face tokens have been pre-loaded into your project namespace for this workshop. As a regular project user you do not have permission to view or modify secrets directly — this is by design. In a real deployment, you would manage secrets as a platform admin through AMD Resource Manager or via `kubectl` with admin credentials.
 
 ---
 
@@ -217,7 +247,7 @@ spec:
     spec:
       containers:
         - name: minimal-aim-deployment
-          image: amdenterpriseai/aim-google-gemma-3-1b-it:0.12.0
+          image: amdenterpriseai/aim-meta-llama-3.2-1b-instruct:0.11.0
           imagePullPolicy: Always
           env:
             - name: AIM_PRECISION
@@ -310,7 +340,7 @@ Apply both manifests to your namespace:
 kubectl apply -f aai-test-deployment.yaml -f aai-test-service.yaml -n $namespace
 ```
 
-> **Why Gemma 3 1B?** This AIM image is packaged and optimized for AMD Instinct GPUs. It can take several minutes to download model weights, compile kernels, and pass its startup probe on first launch.
+> **Why Llama 3.2 1B?** This AIM image is packaged and optimized for AMD Instinct GPUs. It can take several minutes to download model weights, compile kernels, and pass its startup probe on first launch.
 
 Watch the AIM come up:
 
@@ -359,7 +389,7 @@ Then send a test inference request:
 curl http://localhost:8000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "google/gemma-3-1b-it",
+    "model": "meta-llama/Llama-3.2-1B-Instruct",
     "messages": [{"role": "user", "content": "Summarize the key benefits of AMD MI350X GPUs in two sentences."}],
     "max_tokens": 150
   }'
@@ -428,8 +458,25 @@ helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
   | kubectl apply -f - -n $namespace
 ```
 
-TODO add port forward the instructions 
-TODO test port forward on two different projects and computers
+### Access the MRI Documentation Application via Port-Forward
+
+Once the deployment is running, forward the Blueprint service to your local machine:
+
+```bash
+kubectl port-forward services/aimsb-mri-doc-$name 7861:80 -n $namespace
+```
+
+This tunnels traffic from **http://localhost:7861** on your machine to the Blueprint service running in the cluster. Keep this terminal open — closing it will stop the tunnel.
+
+Open a browser and navigate to:
+
+```
+http://localhost:7861
+```
+
+You should see the MRI Documentation interface. Try uploading a sample MRI report or asking it a question about an imaging study.
+
+> **Note:** Each participant must run port-forward from their own terminal using their own session. Port-forward is local to your machine and does not affect other participants' sessions.
 
 <!--isabelleliu@Isabelles-Laptop .kube % echo "https://aimsb-mri-doc-$name$(kubectl get gtw -A -o jsonpath='{.items[*].spec.listeners[?(@.name=="https")].hostname}' | tr -d \*)/"
 Error from server (Forbidden): gateways.gateway.networking.k8s.io is forbidden: User "oidc:user1@aai.silogen.ai" cannot list resource "gateways" in API group "gateway.networking.k8s.io" at the cluster scope
@@ -440,7 +487,7 @@ https://aimsb-mri-doc-my-deployment/-->
 
 > **What does this do?**
 > - `helm template` downloads the Blueprint chart from AMD's registry and renders it into Kubernetes configuration files
-> - `--set llm.existingService=$aimservice` points the Blueprint at the Gemma 3 AIM service you deployed in Part 1 — no second model pod is created
+> - `--set llm.existingService=$aimservice` points the Blueprint at the Llama 3.2 1B AIM service you deployed in Part 1 — no second model pod is created
 > - `kubectl apply` sends the rendered configuration to the cluster
 
 > **Prerequisites for HTTPRoute:** The cluster must have a Gateway API-compatible gateway (e.g., Envoy Gateway) with a gateway named `https` in the `envoy-gateway-system` namespace. Your facilitator will confirm this is available in the workshop environment.
