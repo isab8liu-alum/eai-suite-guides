@@ -318,7 +318,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: hf-token
-                  key: hf-token
+                  key: token
           ports:
             - name: http
               containerPort: 8000
