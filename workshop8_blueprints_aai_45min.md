@@ -295,15 +295,15 @@ spec:
     spec:
       containers:
         - name: minimal-aim-deployment
-          image: amdenterpriseai/aim-meta-llama-3-2-1b-instruct:0.11.0
+          image: amdenterpriseai/aim-meta-llama-3-2-1b-instruct:0.11.1
           imagePullPolicy: Always
           env:
             - name: AIM_PRECISION
-              value: "auto"
+              value: "FP16"
             - name: AIM_GPU_COUNT
               value: "1"
             - name: AIM_GPU_MODEL
-              value: "auto"
+              value: "MI350X"
             - name: AIM_ENGINE
               value: "vllm"
             - name: AIM_METRIC
@@ -318,7 +318,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: hf-token
-                  key: token
+                  key: hf-token
           ports:
             - name: http
               containerPort: 8000
