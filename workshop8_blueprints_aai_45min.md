@@ -189,8 +189,8 @@ Activate it and verify the connection:
 
 ```bash
 export KUBECONFIG=~/.kube/kube_config_aai.yaml
-kubectl get nodes
 ```
+> **Note:** Admins can run `kubectl get nodes` to view all nodes.
 
 **Expected output:** This should lead you to a login page. Enter the user credentials and password the workshop instructor has shared. 
 
