@@ -498,13 +498,25 @@ chart="aimsb-mri-doc"      # The MRI Documentation Blueprint
 
 ### Deploy
 
-Deploy the Blueprint pointed at the AIM you deployed in Part 1, with HTTP routing enabled so the application is reachable through the cluster gateway:
+Deploy the Blueprint pointed at the AIM you deployed in Part 1, by listing it as the existing AIMS service:
 
 ```bash
 helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
   --set llm.existingService=$aimservice \
   | kubectl apply -f - -n $namespace
 ```
+
+### Verify the Deployment
+
+```bash
+k9s -n $namespace
+```
+
+This opens a live dashboard scoped to your namespace. Pods will initially show `ContainerCreating` or `Pending` while images pull — this is normal. Watch the **STATUS** column until all pods show **Running** before continuing. Press `:q` to exit k9s.
+
+> **k9s tips:** Use the arrow keys to navigate between pods. Press `d` to describe a pod (useful for troubleshooting), `l` to stream its logs, and `:q` to exit.
+
+![Blueprint deployment in progress](aai_workshop_images/blueprint-wsl-deployment.png)
 
 ### Access the MRI Documentation Application via Port-Forward
 
@@ -538,35 +550,10 @@ https://aimsb-mri-doc-my-deployment/-->
 > - `--set llm.existingService=$aimservice` points the Blueprint at the Llama 3.2 1B AIM service you deployed in Part 1 — no second model pod is created
 > - `kubectl apply` sends the rendered configuration to the cluster
 
-> **Prerequisites for HTTPRoute:** The cluster must have a Gateway API-compatible gateway (e.g., Envoy Gateway) with a gateway named `https` in the `envoy-gateway-system` namespace. Your facilitator will confirm this is available in the workshop environment.
 
-### Verify the Deployment
 
-```bash
-k9s -n $namespace
-```
 
-This opens a live dashboard scoped to your namespace. Pods will initially show `ContainerCreating` or `Pending` while images pull — this is normal. Watch the **STATUS** column until all pods show **Running** before continuing. Press `:q` to exit k9s.
 
-> **k9s tips:** Use the arrow keys to navigate between pods. Press `d` to describe a pod (useful for troubleshooting), `l` to stream its logs, and `:q` to exit.
-
-![Blueprint deployment in progress](aai_workshop_images/blueprint-wsl-deployment.png)
-
-### Access the MRI Documentation Application
-
-Once all pods are Running, get the application URL from the gateway:
-
-```bash
-echo "https://aimsb-mri-doc-$name$(kubectl get gtw -A -o jsonpath='{.items[*].spec.listeners[?(@.name=="https")].hostname}' | tr -d \*)/"
-```
-
-Open the printed URL in your browser. You should see the MRI Documentation interface. Try uploading a sample report or asking it a question about an imaging study.
-
-> **If HTTPRoute is not available** in your environment, fall back to port-forwarding:
-> ```bash
-> kubectl port-forward services/aimsb-mri-doc-$name 7861:80 -n $namespace
-> ```
-> Then open **http://localhost:7861**.
 
 ---
 
