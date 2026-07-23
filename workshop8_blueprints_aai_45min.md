@@ -116,7 +116,7 @@ Verify all three installed correctly:
 kubectl version --client && helm version && k9s version
 ```
 
-Install kubelogin and oidc-login
+Install kubelogin
 
 **Linux / WSL:**
 ```bash
@@ -130,13 +130,43 @@ unzip kubelogin-linux-amd64.zip
 sudo mv bin/linux_amd64/kubelogin /usr/local/bin/
 
 kubelogin --version
-kubectl oidc-login --help
 ```
 
 **macOS:**
 ```bash
 brew install kubelogin
 kubelogin --version
+```
+
+Install krew (kubectl plugin manager) and the oidc-login plugin
+
+**Linux / WSL:**
+```bash
+(
+  set -x; cd "$(mktemp -d)" &&
+  OS="$(uname | tr '[:upper:]' '[:lower:]')" &&
+  ARCH="$(uname -m | sed -e 's/x86_64/amd64/' -e 's/arm.*$/arm/')" &&
+  KREW="krew-${OS}_${ARCH}" &&
+  curl -fsSLO "https://github.com/kubernetes-sigs/krew/releases/latest/download/${KREW}.tar.gz" &&
+  tar zxvf "${KREW}.tar.gz" &&
+  ./"${KREW}" install krew
+)
+
+export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
+echo 'export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"' >> ~/.bashrc
+
+kubectl krew install oidc-login
+kubectl oidc-login --help
+```
+
+**macOS:**
+```bash
+brew install krew
+
+export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
+echo 'export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"' >> ~/.zshrc
+
+kubectl krew install oidc-login
 kubectl oidc-login --help
 ```
 ---
