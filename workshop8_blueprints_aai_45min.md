@@ -295,7 +295,7 @@ spec:
     spec:
       containers:
         - name: minimal-aim-deployment
-          image: amdenterpriseai/aim-meta-llama-3.2-1b-instruct:0.11.0
+          image: amdenterpriseai/aim-meta-llama-3-2-1b-instruct:0.11.0
           imagePullPolicy: Always
           env:
             - name: AIM_PRECISION
