@@ -116,11 +116,29 @@ Verify all three installed correctly:
 kubectl version --client && helm version && k9s version
 ```
 
+Install kubelogin and oidc-login
+
+**Linux / WSL:**
 ```bash
-brew install kubelogin
+curl -LO https://github.com/Azure/kubelogin/releases/latest/download/kubelogin-linux-amd64.zip
+
+sudo apt update
+sudo apt install unzip -y
+
+unzip kubelogin-linux-amd64.zip
+
+sudo mv bin/linux_amd64/kubelogin /usr/local/bin/
+
+kubelogin --version
 kubectl oidc-login --help
 ```
 
+**macOS:**
+```bash
+brew install kubelogin
+kubelogin --version
+kubectl oidc-login --help
+```
 ---
 
 ## Step 1B: Connect Your Terminal to the Workshop Cluster
