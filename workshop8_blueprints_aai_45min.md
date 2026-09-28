@@ -84,18 +84,22 @@ All commands in this workshop run from the terminal on your laptop (WSL if on Wi
 
 ### Install Required Tools
 
-Run each block of commands in your terminal:
+Run each numbered step in order from your terminal.
+
+#### 1. Install k9s
 
 ```bash
-# Install k9s - a visual Kubernetes dashboard
+# k9s is a visual Kubernetes dashboard
 curl -sS https://webinstall.dev/k9s | bash
 source ~/.config/envman/PATH.env
 ```
 
 > **macOS note:** You can also install k9s via Homebrew: `brew install k9s`
 
+#### 2. Install kubectl
+
 ```bash
-# Install kubectl - communicates with the Kubernetes cluster
+# kubectl communicates with the Kubernetes cluster
 mkdir -p ~/.kube
 curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
 chmod +x kubectl
@@ -105,18 +109,14 @@ kubectl version --client
 
 > **macOS note:** Replace `linux/amd64` in the kubectl URL with `darwin/amd64` (Intel Mac) or `darwin/arm64` (Apple Silicon M1/M2/M3). The rest of the command is identical.
 
+#### 3. Install Helm
+
 ```bash
-# Install Helm - the package manager used to deploy Blueprints
+# Helm is the package manager used to deploy Blueprints
 curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 ```
 
-Verify all three installed correctly:
-
-```bash
-kubectl version --client && helm version && k9s version
-```
-
-Install kubelogin
+#### 4. Install kubelogin
 
 **Linux / WSL:**
 ```bash
@@ -138,7 +138,9 @@ brew install kubelogin
 kubelogin --version
 ```
 
-Install krew (kubectl plugin manager) and the oidc-login plugin
+#### 5. Install krew
+
+krew is the kubectl plugin manager used to install the OIDC login plugin.
 
 **Linux / WSL:**
 ```bash
@@ -154,9 +156,6 @@ Install krew (kubectl plugin manager) and the oidc-login plugin
 
 export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
 echo 'export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"' >> ~/.bashrc
-
-kubectl krew install oidc-login
-kubectl oidc-login --help
 ```
 
 **macOS:**
@@ -165,8 +164,23 @@ brew install krew
 
 export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
 echo 'export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"' >> ~/.zshrc
+```
 
+#### 6. Install the oidc-login plugin
+
+```bash
 kubectl krew install oidc-login
+kubectl oidc-login --help
+```
+
+#### 7. Verify all required tools
+
+```bash
+kubectl version --client
+helm version
+k9s version
+kubelogin --version
+kubectl krew version
 kubectl oidc-login --help
 ```
 ---
