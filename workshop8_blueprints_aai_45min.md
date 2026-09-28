@@ -5,6 +5,20 @@
 **Prerequisites:** A laptop (Linux, macOS, or Windows with WSL), a terminal, and the workshop credentials provided by your facilitator  
 **Time:** 45 minutes total
 
+## Workshop Access
+
+Use the following workshop endpoints and your assigned participant number:
+
+| Service | URL or value |
+|---|---|
+| **AMD AI Workbench** | [https://aiwbui.amd-workshop.silogen.ai/](https://aiwbui.amd-workshop.silogen.ai/) |
+| **AMD Resource Manager** | [https://airmui.amd-workshop.silogen.ai/](https://airmui.amd-workshop.silogen.ai/) |
+| **Kubernetes API** | `https://k8s.amd-workshop.silogen.ai` |
+
+- **Username:** `userN@amd-workshop.silogen.ai` — replace `N` with your assigned number (for example, `user1@amd-workshop.silogen.ai`)
+- **Password:** Use the password provided by the workshop facilitator
+- **Namespace:** Use the project namespace assigned by the facilitator, typically `projN` for `userN`
+
 ---
 
 ## What You Will Build Today
@@ -186,7 +200,7 @@ apiVersion: v1
 clusters:
 - cluster:
     insecure-skip-tls-verify: true
-    server: https://k8s.aai.silogen.ai
+    server: https://k8s.amd-workshop.silogen.ai
   name: default
 contexts:
 - context:
@@ -204,9 +218,9 @@ users:
       args:
       - oidc-login
       - get-token
-      - --oidc-issuer-url=https://kc.aai.silogen.ai/realms/airm
+      - --oidc-issuer-url=https://kc.amd-workshop.silogen.ai/realms/airm
       - --oidc-client-id=k8s
-      - --oidc-client-secret=0e2d1aac6a57d37957ffd7e0af144c89
+      - --oidc-client-secret=a9e8c69283aa3f85dbbb19e1f703f328
       - --insecure-skip-tls-verify
       command: kubectl
       env: null
@@ -215,23 +229,27 @@ users:
 EOF
 ```
 
-Activate it and verify the connection:
+Activate the kubeconfig:
 
 ```bash
 export KUBECONFIG=~/.kube/kube_config_aai.yaml
 ```
-> **Note:** Admins can run `kubectl get nodes` to view all nodes.
 
-**Expected output:** This should lead you to a login page. Enter the user credentials and password the workshop instructor has shared. 
-
-<!-- kubectl get nodes will work for admin login only
-A list of cluster nodes with `Ready` status. If you see this, your terminal is connected to the cluster.
--->
-Also set your namespace - your facilitator will confirm your project number:
+Set your namespace. Replace `N` with your assigned participant number; if the facilitator provided a different project name, use that name instead:
 
 ```bash
-namespace="proj<your project number>"   # Your assigned Kubernetes namespace, such as "proj1"
+namespace="projN"   # For example, user1 normally uses proj1
 ```
+
+Trigger the browser login and verify that your account can access its namespace:
+
+```bash
+kubectl auth can-i get pods -n "$namespace"
+```
+
+When the browser opens, sign in as `userN@amd-workshop.silogen.ai` (for example, `user1@amd-workshop.silogen.ai`) and use the password provided by the workshop facilitator. A successful participant login should return `yes` for the namespace access check.
+
+> **Note:** `kubectl get nodes` requires administrator permissions and is not a participant connectivity test.
 
 ---
 
@@ -539,10 +557,10 @@ You should see the MRI Documentation interface. Try uploading a sample MRI repor
 > **Note:** Each participant must run port-forward from their own terminal using their own session. Port-forward is local to your machine and does not affect other participants' sessions.
 
 <!--isabelleliu@Isabelles-Laptop .kube % echo "https://aimsb-mri-doc-$name$(kubectl get gtw -A -o jsonpath='{.items[*].spec.listeners[?(@.name=="https")].hostname}' | tr -d \*)/"
-Error from server (Forbidden): gateways.gateway.networking.k8s.io is forbidden: User "oidc:user1@aai.silogen.ai" cannot list resource "gateways" in API group "gateway.networking.k8s.io" at the cluster scope
+Error from server (Forbidden): gateways.gateway.networking.k8s.io is forbidden: User "oidc:user1@amd-workshop.silogen.ai" cannot list resource "gateways" in API group "gateway.networking.k8s.io" at the cluster scope
 https://aimsb-mri-doc-my-deployment/
 isabelleliu@Isabelles-Laptop .kube % echo "https://aimsb-mri-doc-$name$(kubectl get gtw -A -o jsonpath='{.items[*].spec.listeners[?(@.name=="https")].hostname}' | tr -d \*)/"
-Error from server (Forbidden): gateways.gateway.networking.k8s.io is forbidden: User "oidc:user1@aai.silogen.ai" cannot list resource "gateways" in API group "gateway.networking.k8s.io" at the cluster scope
+Error from server (Forbidden): gateways.gateway.networking.k8s.io is forbidden: User "oidc:user1@amd-workshop.silogen.ai" cannot list resource "gateways" in API group "gateway.networking.k8s.io" at the cluster scope
 https://aimsb-mri-doc-my-deployment/-->
 
 > **What does this do?**
@@ -786,11 +804,11 @@ AMD AI Workbench is the self-service portal your data scientists, developers, an
 
 ## Step 3A: Log In to AMD AI Workbench
 
-Open a browser and navigate to the AI Workbench URL provided by your facilitator:
+Open a browser and navigate to AMD AI Workbench:
 
-- Format: `https://airmui.<your-domain>` or the IP-based URL on your workshop sheet
+- [https://aiwbui.amd-workshop.silogen.ai/](https://aiwbui.amd-workshop.silogen.ai/)
 
-Use the login credentials your facilitator provided. After login, confirm you are in the correct **project** — look for the project name in the top navigation bar.
+Sign in as `userN@amd-workshop.silogen.ai`, replacing `N` with your assigned participant number. Use the password provided by the facilitator. After login, confirm you are in the correct **project** — look for the project name in the top navigation bar.
 
 ![AMD AI Workbench login page](aai_workshop_images/login-page.png)
 

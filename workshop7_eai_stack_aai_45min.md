@@ -6,6 +6,19 @@
 **Time:** 45 minutes total  
 **No terminal required** — this workshop is entirely GUI-driven
 
+## Workshop Access
+
+Use the following workshop portals and your assigned participant number:
+
+| Portal | URL |
+|---|---|
+| **AMD AI Workbench** | [https://aiwbui.amd-workshop.silogen.ai/](https://aiwbui.amd-workshop.silogen.ai/) |
+| **AMD Resource Manager** | [https://airmui.amd-workshop.silogen.ai/](https://airmui.amd-workshop.silogen.ai/) |
+
+- **Username:** `userN@amd-workshop.silogen.ai` — replace `N` with your assigned number (for example, `user1@amd-workshop.silogen.ai`)
+- **Password:** Use the password provided by the workshop facilitator
+- **Project:** Select the project assigned to your participant number, or the project specified by the facilitator
+
 ---
 
 ## System Setup: Preparing Your Laptop
@@ -49,13 +62,12 @@ No Kubernetes, terminal, or ML engineering experience required.
 
 ## Step 1A: Log In to Workbench and Select Your Project
 
-Open a browser and navigate to the AI Workbench URL:
+Open a browser and navigate to AMD AI Workbench:
 
-- Format: `https://aiwbui.aai.silogen.ai` or the IP-based URL on your workshop sheet
+- [https://aiwbui.amd-workshop.silogen.ai/](https://aiwbui.amd-workshop.silogen.ai/)
 
 
-
-Use the **user credentials** your facilitator provided. After login, confirm you are in the correct project by checking the project name in the top navigation bar.
+Sign in as `userN@amd-workshop.silogen.ai`, replacing `N` with your assigned participant number. Use the password provided by the facilitator. After login, confirm you are in the correct project by checking the project name in the top navigation bar.
 
 ![AMD AI Workbench login page](aai_workshop_images/login-page.png)
 
@@ -439,12 +451,11 @@ In this section you will tour the user workflow. Your instructor will also demo 
 
 ## Step 4A: Log In to Resource Manager
 
-Open a browser and navigate to the Resource Manager URL provided by your facilitator:
+Open a browser and navigate to AMD Resource Manager:
 
-- Format: `https://airmui.aai.silogen.ai/` or the IP-based URL on your workshop sheet
+- [https://airmui.amd-workshop.silogen.ai/](https://airmui.amd-workshop.silogen.ai/)
 
-
-Use the **login credentials** your facilitator provided.
+Sign in as `userN@amd-workshop.silogen.ai`, replacing `N` with your assigned participant number. Use the password provided by the facilitator.
 
 ![Resource Manager dashboard overview](aai_workshop_images/01-dashboard-overview-rm.png)
 
