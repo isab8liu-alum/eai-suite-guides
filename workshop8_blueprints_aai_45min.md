@@ -100,7 +100,25 @@ All commands in this workshop run from the terminal on your laptop (WSL if on Wi
 
 Run each numbered step in order from your terminal.
 
-#### 1. Install k9s
+#### 1. Install the base packages
+
+These packages support the download, archive extraction, checksum verification, Git, and Python commands used throughout the workshop.
+
+**Linux / WSL:**
+```bash
+sudo apt update
+sudo apt install -y ca-certificates curl git gzip openssl python3 tar unzip
+```
+
+**macOS:**
+```bash
+xcode-select --install  # Skip this command if the Xcode Command Line Tools are already installed
+brew install python
+```
+
+> **macOS note:** The Xcode Command Line Tools provide Git and other command-line utilities. Homebrew is also required by later macOS installation steps.
+
+#### 2. Install k9s
 
 ```bash
 # k9s is a visual Kubernetes dashboard
@@ -110,7 +128,7 @@ source ~/.config/envman/PATH.env
 
 > **macOS note:** You can also install k9s via Homebrew: `brew install k9s`
 
-#### 2. Install kubectl
+#### 3. Install kubectl
 
 ```bash
 # kubectl communicates with the Kubernetes cluster
@@ -123,21 +141,35 @@ kubectl version --client
 
 > **macOS note:** Replace `linux/amd64` in the kubectl URL with `darwin/amd64` (Intel Mac) or `darwin/arm64` (Apple Silicon M1/M2/M3). The rest of the command is identical.
 
-#### 3. Install Helm
+#### 4. Install Helm
 
 ```bash
 # Helm is the package manager used to deploy Blueprints
 curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 ```
 
-#### 4. Install kubelogin
+> **WSL note — Helm OCI credential errors:** WSL does not run a desktop session, so Helm's OCI registry client (used by `helm pull` and `helm template ... oci://...` throughout this workshop) can fail trying to reach a credential keyring. If you hit a secret-storage error, install a keyring and D-Bus session:
+>
+> ```bash
+> sudo apt install -y libsecret-1-0 gnome-keyring dbus-x11
+> ```
+>
+> Then run the failing Helm command inside a D-Bus session with the keyring daemon started, for example:
+>
+> ```bash
+> dbus-run-session -- bash -c '
+>   gnome-keyring-daemon --start --components=secrets >/dev/null
+>   helm pull oci://registry-1.docker.io/amdenterpriseai/aimsb-mri-doc --version 0.2.4
+> '
+> ```
+>
+> Wrap any later `helm template ... oci://...` command in this workshop with the same `dbus-run-session -- bash -c '...'` pattern if you see the same error.
+
+#### 5. Install kubelogin
 
 **Linux / WSL:**
 ```bash
 curl -LO https://github.com/Azure/kubelogin/releases/latest/download/kubelogin-linux-amd64.zip
-
-sudo apt update
-sudo apt install unzip -y
 
 unzip kubelogin-linux-amd64.zip
 
@@ -152,7 +184,7 @@ brew install kubelogin
 kubelogin --version
 ```
 
-#### 5. Install krew
+#### 6. Install krew
 
 krew is the kubectl plugin manager used to install the OIDC login plugin.
 
@@ -180,14 +212,14 @@ export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
 echo 'export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"' >> ~/.zshrc
 ```
 
-#### 6. Install the oidc-login plugin
+#### 7. Install the oidc-login plugin
 
 ```bash
 kubectl krew install oidc-login
 kubectl oidc-login --help
 ```
 
-#### 7. Verify all required tools
+#### 8. Verify all required tools
 
 ```bash
 kubectl version --client
