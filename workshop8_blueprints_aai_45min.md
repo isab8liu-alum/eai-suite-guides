@@ -378,11 +378,16 @@ spec:
               path: /v1/models
               port: http
           volumeMounts:
+            - name: model-cache
+              mountPath: /workspace/model-cache
             - name: ephemeral-storage
               mountPath: /tmp
             - name: dshm
               mountPath: /dev/shm
       volumes:
+        - name: model-cache
+          persistentVolumeClaim:
+            claimName: aim-model-cache
         - name: ephemeral-storage
           emptyDir:
             sizeLimit: 256Gi
@@ -606,6 +611,7 @@ Wait for pods to terminate (watch in k9s), then redeploy the Blueprint — this 
 
 ```bash
 helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
+--set llm.env_vars.AIM_ACCELERATOR_MODEL="MI350X" \
   | kubectl apply -f - -n $namespace
 ```
 
