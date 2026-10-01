@@ -139,8 +139,11 @@ kubectl version --client
 #### 4. Install Helm
 
 ```bash
-# Helm is the package manager used to deploy Blueprints
-curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+# Helm is the package manager used to deploy Blueprints.
+# Pin 4.2.0 because the Blueprint deployment guide documents a stdout issue in Helm 4.2.1+.
+curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 -o get_helm.sh
+chmod 700 get_helm.sh
+DESIRED_VERSION=v4.2.0 ./get_helm.sh
 ```
 
 > **WSL note — Helm OCI credential errors:** WSL does not run a desktop session, so Helm's OCI registry client (used by `helm pull` and `helm template ... oci://...` throughout this workshop) can fail trying to reach a credential keyring. If you hit a secret-storage error, install a keyring and D-Bus session:
@@ -261,7 +264,7 @@ users:
       - get-token
       - --oidc-issuer-url=https://kc.amd-workshop.silogen.ai/realms/airm
       - --oidc-client-id=k8s
-      - --oidc-client-secret=a9e8c69283aa3f85dbbb19e1f703f328
+      - --oidc-client-secret=<provided-oidc-client-secret>
       - --insecure-skip-tls-verify
       command: kubectl
       env: null
@@ -269,6 +272,8 @@ users:
       provideClusterInfo: false
 EOF
 ```
+
+Replace `<provided-oidc-client-secret>` with the value supplied securely by the facilitator. Do not paste a real client secret into Git or shared notes.
 
 Activate the kubeconfig:
 
@@ -540,6 +545,8 @@ Building an AI application from scratch — even with a model already running �
 
 ## Step 2A: Deploy the MRI Documentation Blueprint
 
+The commands in this section follow the upstream [MRI Analysis Tool Deployment Guide](https://github.com/amd-enterprise-ai/solution-blueprints/blob/main/solution-blueprints/mri-doc/docs/DEPLOYMENT.md).
+
 The **MRI Documentation Blueprint** (`aimsb-mri-doc`) provides:
 - AI-assisted analysis and summarization of MRI scan reports
 - Natural language querying over medical imaging documentation
@@ -551,8 +558,6 @@ The **MRI Documentation Blueprint** (`aimsb-mri-doc`) provides:
 ```bash
 name="my-deployment"       # A unique label for your Blueprint deployment
 chart="aimsb-mri-doc"      # The MRI Documentation Blueprint
-gateway_domain="amd-workshop.silogen.ai"
-blueprint_url="https://aimsb-mri-doc-$name.$gateway_domain/"
 ```
 
 ### Deploy
@@ -563,12 +568,14 @@ Deploy the Blueprint pointed at the AIM you deployed in Part 1, by listing it as
 helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
   --set llm.existingService=$aimservice \
   --set http_route.enabled=true \
-  --set http_route.gateway.name=https \
-  --set http_route.gateway.namespace=envoy-gateway-system \
   | kubectl apply -f - -n $namespace
 ```
 
-The HTTP routing settings create a namespaced `HTTPRoute` and attach it to the workshop cluster's TLS-enabled `https` Gateway.
+This follows the Blueprint deployment guide's recommended pattern: render with `helm template`, then pipe the manifests to `kubectl apply`. The chart creates a namespaced `HTTPRoute` when `http_route.enabled=true`.
+
+> **HTTPS prerequisite:** A Gateway named `https` must exist in the `envoy-gateway-system` namespace and have a configured listener. The workshop platform provides this shared Gateway.
+
+> **Helm compatibility:** The upstream guide documents a known stdout issue in Helm 4.2.1 and newer that can break `helm template ... | kubectl apply -f -`. Step 1A pins Helm 4.2.0. If you use another workstation, use Helm 3.16 through 4.2.0 or follow the upstream guide's separate `helm pull --untar` workaround.
 
 ### Verify the Deployment
 
@@ -596,10 +603,11 @@ In the `Status` section, look for `Accepted=True` and `ResolvedRefs=True`. If ei
 Once the deployment and route are ready, print the application URL:
 
 ```bash
+blueprint_url="https://aimsb-mri-doc-$name$(kubectl get gtw -A -o jsonpath='{.items[*].spec.listeners[?(@.name=="https")].hostname}' | tr -d \*)/"
 echo "$blueprint_url"
 ```
 
-The workshop Gateway terminates TLS and routes the hostname to the Blueprint service in your namespace. No local port-forward is required.
+This command follows the Blueprint deployment guide by querying the cluster for the `https` listener hostname instead of hard-coding a domain. The Gateway terminates TLS and routes the resulting hostname to the Blueprint service. No local port-forward is required.
 
 Verify HTTPS from the terminal:
 
@@ -612,7 +620,7 @@ Open the printed URL in your browser. You should see the MRI Documentation inter
 > **What does this do?**
 > - `helm template` downloads the Blueprint chart from AMD's registry and renders it into Kubernetes configuration files
 > - `--set llm.existingService=$aimservice` points the Blueprint at the Llama 3.2 1B AIM service you deployed in Part 1 — no second model pod is created
-> - `--set http_route.enabled=true` creates the `HTTPRoute`; the next two settings attach it to the cluster's HTTPS Gateway
+> - `--set http_route.enabled=true` creates the `HTTPRoute` using the chart's Gateway configuration
 > - `kubectl apply` sends the rendered configuration to the cluster
 
 
@@ -634,8 +642,6 @@ Delete the existing Blueprint and its HTTPS route:
 helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
   --set llm.existingService=$aimservice \
   --set http_route.enabled=true \
-  --set http_route.gateway.name=https \
-  --set http_route.gateway.namespace=envoy-gateway-system \
   | kubectl delete -f - -n $namespace
 ```
 
@@ -643,10 +649,7 @@ Wait for pods to terminate (watch in k9s), then redeploy the Blueprint — this 
 
 ```bash
 helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
-  --set llm.env_vars.AIM_ACCELERATOR_MODEL="MI350X" \
   --set http_route.enabled=true \
-  --set http_route.gateway.name=https \
-  --set http_route.gateway.namespace=envoy-gateway-system \
   | kubectl apply -f - -n $namespace
 ```
 
@@ -793,18 +796,17 @@ kubectl cp /tmp/monai_bundle/<weights-file> \
 
 **Step 4 — Redeploy via Helm**
 
-There is no container image to build — the Blueprint packages `src/*.py` and `src/requirements.txt` directly into a ConfigMap. Confirm you are still in the `mri-doc` directory, then re-run `helm upgrade` to push your changes:
+There is no container image to build — the Blueprint packages `src/*.py` and `src/requirements.txt` directly into a ConfigMap. Confirm you are still in the `mri-doc` directory, then follow the deployment guide's `helm template | kubectl apply` pattern to push your changes:
 
 ```bash
 # Confirm you are in the right directory
 pwd   # should end with solution-blueprints/mri-doc
 
-helm upgrade $name oci://registry-1.docker.io/amdenterpriseai/$chart \
+helm template $name . \
   --set llm.existingService=$aimservice \
   --set http_route.enabled=true \
-  --set http_route.gateway.name=https \
-  --set http_route.gateway.namespace=envoy-gateway-system \
-  -f values.yaml -n $namespace
+  -f values.yaml \
+  | kubectl apply -f - -n $namespace
 ```
 
 The pod will restart, install the updated dependencies, and mount the new code. The application will now use deep learning segmentation on every uploaded scan.
