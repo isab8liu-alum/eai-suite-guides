@@ -37,7 +37,7 @@ You will:
 1. **Kubernetes Concepts - Slides**
 2. **Deploy and manage the GPT-OSS-20B AIM** through AMD AI Workbench — observe live inference metrics, configure autoscaling, and chat with the running model
 3. **Benchmark a deployed model in VSCode** — measure throughput, latency, and time to first token with `vllm bench serve`
-4. **Explore AMD Resource Manager** — view the admin control plane for projects, quotas, secrets, and storage
+4. **Explore AMD Resource Manager** — view node GPU metrics and the admin control plane for projects, quotas, secrets, and storage
 5. **Deploy an AIM with kubectl** — use a CLI-native Kubernetes workflow
 6. **Deploy and customize a Solution Blueprint** — connect a medical imaging application to an AIM and expose it through HTTPS routing
 
@@ -212,17 +212,55 @@ The `vllm bench serve` tool measures real-world model performance — throughput
 
 ---
 
-## Step 2A: Find Your GPT-OSS Model's Internal Endpoint
+## Step 2A: Connect to Your GPT-OSS Model from VSCode
 
-You need the cluster-internal service URL for the model you deployed in Part 1.
+You will copy the model's cluster-internal endpoint, open a VSCode workspace in the same platform, and send a simple OpenAI-compatible API request. AMD AI Workbench shows both external and internal URLs; use the **Internal URL** from a Workbench workspace because the workspace runs inside the same platform.
+
+### Copy the Endpoint Details
 
 In AMD AI Workbench:
-1. Click **Models** and open the running **GPT-OSS-20B** deployment
-2. Click **Connect** on the model details page
-3. Copy the **Internal URL** — it looks like `http://aim-llm-<model-name>-<id>.<namespace>.svc.cluster.local`
-4. Copy the **Model name or model ID** shown in the connection details. Use that exact value in the benchmark.
 
-Keep this URL — you will use it in the next step.
+1. Click **Models**, then open the **Deployed Models** tab.
+2. Find the running **GPT-OSS-20B** deployment, open its three-dot action menu, and select **Connect**.
+3. Copy the **Internal URL**. It looks like `http://aim-llm-<model-name>-<id>.<namespace>.svc.cluster.local`.
+4. Copy the **Model name or model ID** shown in the connection dialog. Use the exact value returned by the deployment; do not guess it from the display name.
+
+> **Reference:** AMD's [How to Deploy a Model and Run Inference](https://enterprise-ai.docs.amd.com/en/latest/workbench/inference/how-to-deploy-and-inference.html) guide explains the **Connect** dialog, the difference between internal and external URLs, and testing an endpoint from a Workbench workspace.
+
+### Open VSCode and Test the Endpoint
+
+Go to **Workspaces** in the left sidebar. Open your running VSCode workspace. If you do not have one yet, deploy the VSCode workspace described in Step 2B, wait until its status is **Running**, and then click **Open**.
+
+In VSCode, select **Terminal -> New Terminal** (or press `` Ctrl+` ``). Set the two values copied from the connection dialog:
+
+```bash
+export BASE_URL="<your-gpt-oss-internal-url>"
+export MODEL="<your-gpt-oss-model-id>"
+
+# Remove a trailing slash if one was copied.
+export BASE_URL="${BASE_URL%/}"
+```
+
+First, confirm that the endpoint is reachable and that it advertises the expected model:
+
+```bash
+curl --fail-with-body --silent --show-error \
+  "${BASE_URL}/v1/models" | python -m json.tool
+```
+
+Check that the JSON response contains your model ID in the `data` list. Then send a simple chat-completion request:
+
+```bash
+curl --fail-with-body --silent --show-error \
+  -X POST "${BASE_URL}/v1/chat/completions" \
+  -H "Content-Type: application/json" \
+  -d "$(printf '{\"model\":\"%s\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello, world!\"}],\"max_tokens\":64}' "$MODEL")" \
+  | python -m json.tool
+```
+
+> **Expected result:** The command returns HTTP success and a JSON object containing `choices`. The model's reply appears under `choices[0].message.content`. The exact wording will vary, but it should respond to **Hello, world!**.
+
+If `curl` reports that the host cannot be resolved, confirm that you used the **Internal URL** and that the terminal is inside the Workbench VSCode workspace, not on your laptop. If the server reports that the model does not exist, run `/v1/models` again and copy the exact `id` value into `MODEL`.
 
 ---
 
@@ -365,6 +403,7 @@ After completing the benchmark, undeploy GPT-OSS-20B to release its GPU allocati
 In enterprise environments, AI infrastructure is shared. Multiple teams — data science, engineering, product — all want access to GPUs. Without governance, one team can accidentally consume all cluster resources, leaving others blocked.
 
 **AMD Resource Manager** is the administrative control plane. It lets IT administrators:
+- Monitor GPU metrics for individual cluster nodes over selectable time ranges
 - Create isolated **projects** for each team or use case
 - Set **resource quotas** (GPU hours, memory, storage) per project
 - Manage **user access** and assign roles
@@ -393,7 +432,21 @@ The dashboard has two sections:
 
 ---
 
-## Step 3B: Explore the Projects Page
+## Step 3B: View GPU Metrics for a Node
+
+1. Click **Clusters** in the left sidebar, then open the workshop cluster.
+2. In the nodes table, select a GPU node to open its detail page.
+3. Scroll to **Device metrics**.
+4. Use the device selector to filter the charts to a specific GPU, or leave the default selection to view all available devices.
+5. Use the time-range selector to view data from the last **1 hour**, **24 hours**, or **7 days**.
+
+Explore the available charts for the selected device and time range. The controls are shared across the GPU metric views, so you can change the filter once and review the charts without configuring each one separately.
+
+> **Reference:** AMD Enterprise AI documentation: [Node GPU Metrics](https://enterprise-ai.docs.amd.com/en/latest/resource-manager/clusters/node-metrics.html).
+
+---
+
+## Step 3C: Explore the Projects Page
 
 Projects are the primary isolation boundary. Each team or use case gets its own project with its own quota, users, secrets, and storage.
 
@@ -415,7 +468,7 @@ The projects list shows every project provisioned on the cluster, with a summary
 
 ---
 
-## Step 3C: Explore Your Project
+## Step 3D: Explore Your Project
 
 Double-click your assigned project in the list to open its detail view.
 
@@ -436,7 +489,7 @@ The **Workloads** table at the bottom lists every running or queued job in the p
 
 ---
 
-## Step 3D: View Resource Quotas
+## Step 3E: View Resource Quotas
 
 To view quota settings, click the **Actions** button in the top-right corner of the project page.
 
@@ -501,7 +554,7 @@ You have now experienced the full administrative and operational lifecycle of th
 | Deployed an AI model and observed live metrics | Production visibility from the first deployment |
 | Reviewed autoscaling controls and quota limits | Dynamic resource efficiency under variable load |
 | Benchmarked GPT-OSS-20B from a VSCode workspace | Quantified throughput and latency before production commitment |
-| Toured Resource Manager — projects, quotas, and secrets | IT governance and multi-team resource control |
+| Toured Resource Manager — node GPU metrics, projects, quotas, and secrets | Infrastructure visibility, IT governance, and multi-team resource control |
 
 **Continue:** Proceed to Module 2 below for the CLI AIM and Solution Blueprint labs.
 
