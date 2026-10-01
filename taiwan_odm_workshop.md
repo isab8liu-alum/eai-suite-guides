@@ -517,7 +517,7 @@ In this workshop you will experience the AMD Inference Microservices (AIMs) and 
 
 You will:
 1. **Deploy an AIM via kubectl** — the CLI-native approach for launching a model on the cluster (llama-3.2-1b-instruct)
-2. **Deploy a complete medical imaging AI application** using a Solution Blueprint — pointed directly at the AIM you just deployed
+2. **Deploy a reference medical imaging AI application** using a Solution Blueprint — pointed directly at the AIM you just deployed
 3. **Customize the Blueprint** — tear down the initial deployment and redeploy it with default AIM
 
 No deep Kubernetes or ML experience required. Every command is explained step by step.
