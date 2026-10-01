@@ -509,7 +509,7 @@ You have now experienced the full administrative and operational lifecycle of th
 
 # Module 2: AIMs and Solution Blueprints
 
-This module merges the CLI deployment and Solution Blueprint lab from Workshop 8 into the Taiwan ODM workshop. Complete Module 1 first, then continue here.
+This module requires CLI deployment. Complete Module 1 first, then continue here.
 
 ## Module 2: What You Will Build
 
