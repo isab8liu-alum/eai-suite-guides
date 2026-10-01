@@ -911,13 +911,13 @@ users:
 EOF
 ```
 
-Replace `<provided-oidc-client-secret>` with the value supplied securely by the facilitator. Do not paste a real client secret into Git or shared notes.
-
 Activate the kubeconfig:
 
 ```bash
 export KUBECONFIG=~/.kube/kube_config_aai.yaml
 ```
+
+The OIDC login will trigger your browser.
 
 Set your namespace. Replace `N` with your assigned participant number; if the facilitator provided a different project name, use that name instead:
 
