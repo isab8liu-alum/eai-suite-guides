@@ -111,9 +111,51 @@ In the deployment panel:
 
 ![Performance dropdown](aai_workshop_images/04-deploy-performance-dropdown.png)
 
-> **Why GPT-OSS instead of Llama for this lab?** Llama model repositories are gated. Before deploying a Llama AIM, a user must accept the model's access terms on Hugging Face and provide an authorized Hugging Face token, normally through a pre-configured project secret. GPT-OSS-20B avoids that gated-model prerequisite for this workshop. Do not select a Llama AIM unless the facilitator confirms that access and the token are ready.
+### Configure Autoscaling
 
-> **Autoscaling** — **Leave disabled** (do not enable autoscaling for this deployment — the workshop environment has limited GPU quota and enabling autoscaling may cause your deployment to stall in a pending state)
+> **Important — GPU capacity limit:** For this workshop, please do not configure autoscaling since each participant project has a limited GPU quota shared across the lab environment. If you would like to try it in the developer zone, set **Max replicas to 1**. If you set a higher max, the autoscaler may attempt to schedule additional replicas that exceed your quota — the workload will hang in a pending state and never run. Keep it at 1 to ensure your deployment starts successfully.
+
+Autoscaling automatically adjusts the number of running model replicas based on real-time demand — scaling up during traffic spikes and back down during low usage, so you only consume GPU resources when you need them.
+
+> **Important:** Autoscaling must be enabled **at deployment time** — you cannot enable it on an existing deployment. If it was enabled at deploy time, you can update its parameters later via **Settings** on the workload detail page.
+
+#### Enable Autoscaling at Deploy Time
+
+When deploying a model, locate the **Autoscaling** section in the deployment drawer and toggle **Enable autoscaling** on:
+
+![Autoscaling configuration panel](aai_workshop_images/autoscaling.png)
+
+Configure the following parameters:
+
+| Parameter | Recommended Value | What It Does |
+|---|---|---|
+| **Min replicas** | 1 | Minimum replicas always running — ensures baseline capacity even at zero traffic |
+| **Max replicas** | **1** | Upper bound — prevents runaway resource use; constrained by your project's GPU quota |
+| **Scaling metric** | Running requests (default) | The vLLM signal used to drive scaling decisions |
+| **Aggregation** | Average (default) | How metric values are combined across all running pods |
+| **Target type** | Absolute value (default) | How the target threshold is interpreted |
+| **Target value** | 10 (default) | Scale up when total running requests across all pods exceed this number |
+
+> **Important — GPU capacity limit:** For this workshop, set **Max replicas to 1**. Each participant project has a limited GPU quota shared across the lab environment. If you set a higher max, the autoscaler may attempt to schedule additional replicas that exceed your quota — the workload will hang in a pending state and never run. Keep it at 1 to ensure your deployment starts successfully.
+
+#### How It Works
+
+- The platform evaluates the scaling metric every **30 seconds**
+- **Scale-up:** When demand exceeds your target threshold, additional replicas are added (up to your configured maximum)
+- **Scale-down:** When demand drops below the threshold and stays low through a **5-minute cooling period**, replicas are removed (down to your configured minimum) — the cooldown prevents flapping
+
+#### Scaling Metric Options
+
+| Metric | When to Use |
+|---|---|
+| **Running requests** (default) | Stable, reactive scaling based on active load — good for most workloads |
+| **Waiting requests** | Proactive scaling that reacts before latency degrades — triggers on queue buildup before response times increase |
+
+> **How autoscaling interacts with quotas:** Autoscaling scales within your project's GPU quota. If your quota allows 4 GPUs and each replica uses 1, autoscaling can create up to 4 replicas. When autoscaling borrows resources beyond a project's guaranteed quota, those pods may be preempted if other projects reclaim their allocation.
+
+You can generate controlled request load later using the `vllm bench serve` test in Part 2 and compare the results with the live metrics in the Workloads tab.
+
+> **Why GPT-OSS instead of Llama for this lab?** Llama model repositories are gated. Before deploying a Llama AIM, a user must accept the model's access terms on Hugging Face and provide an authorized Hugging Face token, normally through a pre-configured project secret. GPT-OSS-20B avoids that gated-model prerequisite for this workshop. Do not select a Llama AIM unless the facilitator confirms that access and the token are ready.
 
 Click **Deploy**.
 
@@ -151,53 +193,6 @@ From the model details page, click **Chat**. Ask a question and observe:
 - The response latency (TTFT)
 - The quality of the response
 - How the metrics dashboard updates in real time as you generate traffic
-
----
-
-## Step 1D: Configure Autoscaling 
-
-> **Important — GPU capacity limit:** For this workshop, please do not configure autoscaling since each participant project has a limited GPU quota shared across the lab environment. If you would like to try it in the developer zone, set **Max replicas to 1**. If you set a higher max, the autoscaler may attempt to schedule additional replicas that exceed your quota — the workload will hang in a pending state and never run. Keep it at 1 to ensure your deployment starts successfully.
-
-Autoscaling automatically adjusts the number of running model replicas based on real-time demand — scaling up during traffic spikes and back down during low usage, so you only consume GPU resources when you need them.
-
-
-> **Important:** Autoscaling must be enabled **at deployment time** — you cannot enable it on an existing deployment. If it was enabled at deploy time, you can update its parameters later via **Settings** on the workload detail page.
-
-### Enable Autoscaling at Deploy Time
-
-When deploying a model (Step 1B), locate the **Autoscaling** section in the deployment drawer and toggle **Enable autoscaling** on:
-
-![Autoscaling configuration panel](aai_workshop_images/autoscaling.png)
-
-Configure the following parameters:
-
-| Parameter | Recommended Value | What It Does |
-|---|---|---|
-| **Min replicas** | 1 | Minimum replicas always running — ensures baseline capacity even at zero traffic |
-| **Max replicas** | **1** | Upper bound — prevents runaway resource use; constrained by your project's GPU quota |
-| **Scaling metric** | Running requests (default) | The vLLM signal used to drive scaling decisions |
-| **Aggregation** | Average (default) | How metric values are combined across all running pods |
-| **Target type** | Absolute value (default) | How the target threshold is interpreted |
-| **Target value** | 10 (default) | Scale up when total running requests across all pods exceed this number |
-
-> **Important — GPU capacity limit:** For this workshop, set **Max replicas to 1**. Each participant project has a limited GPU quota shared across the lab environment. If you set a higher max, the autoscaler may attempt to schedule additional replicas that exceed your quota — the workload will hang in a pending state and never run. Keep it at 1 to ensure your deployment starts successfully.
-
-### How It Works
-
-- The platform evaluates the scaling metric every **30 seconds**
-- **Scale-up:** When demand exceeds your target threshold, additional replicas are added (up to your configured maximum)
-- **Scale-down:** When demand drops below the threshold and stays low through a **5-minute cooling period**, replicas are removed (down to your configured minimum) — the cooldown prevents flapping
-
-### Scaling Metric Options
-
-| Metric | When to Use |
-|---|---|
-| **Running requests** (default) | Stable, reactive scaling based on active load — good for most workloads |
-| **Waiting requests** | Proactive scaling that reacts before latency degrades — triggers on queue buildup before response times increase |
-
-> **How autoscaling interacts with quotas:** Autoscaling scales within your project's GPU quota. If your quota allows 4 GPUs and each replica uses 1, autoscaling can create up to 4 replicas. When autoscaling borrows resources beyond a project's guaranteed quota, those pods may be preempted if other projects reclaim their allocation.
-
-You can generate controlled request load later using the `vllm bench serve` test in Part 2 and compare the results with the live metrics in the Workloads tab.
 
 ---
 
