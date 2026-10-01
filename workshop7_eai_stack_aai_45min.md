@@ -4,7 +4,7 @@
 **Audience:** Enterprise IT administrators, platform engineers, and team leads evaluating the AMD AI platform  
 **Prerequisites:** A browser, the workshop credentials provided by your facilitator  
 **Time:** 45 minutes total  
-**No terminal required** — this workshop is entirely GUI-driven
+**No local terminal required** — browser-based commands run inside the in-cluster VSCode workspace
 
 ## Workshop Access
 
@@ -23,7 +23,7 @@ Use the following workshop portals and your assigned participant number:
 
 ## System Setup: Preparing Your Laptop
 
-This workshop runs entirely in the browser — no local commands are required. All benchmarking in Part 3 is done inside an in-cluster VSCode workspace (which is Linux-based), so your laptop's operating system does not affect any workshop commands.
+This workshop runs entirely in the browser — no local commands are required. All benchmarking in Part 2 is done inside an in-cluster VSCode workspace (which is Linux-based), so your laptop's operating system does not affect any workshop commands.
 
 ---
 
@@ -33,11 +33,11 @@ This workshop takes you deep into the administrative and operational capabilitie
 
 You will:
 1. **Kubernetes Concepts - Slides**
-2. **Deploy and manage AI models** through AMD AI Workbench — observe live inference metrics, configure autoscaling, and chat with a running model
-3. **Fine-tune a model on your own data** — upload a training dataset and start a supervised fine-tuning job through the Workbench UI
+2. **Deploy and manage the GPT-OSS-20B AIM** through AMD AI Workbench — observe live inference metrics, configure autoscaling, and chat with the running model
+3. **Benchmark a deployed model in VSCode** — measure throughput, latency, and time to first token with `vllm bench serve`
 4. **Explore AMD Resource Manager** — view the admin control plane for projects, quotas, secrets, and storage
 
-No Kubernetes, terminal, or ML engineering experience required.
+No Kubernetes or ML engineering experience required. The guided terminal commands run inside VSCode in your browser.
 
 ---
 
@@ -45,7 +45,7 @@ No Kubernetes, terminal, or ML engineering experience required.
 
 | Component | What It Does | Who Uses It |
 |---|---|---|
-| **AMD AI Workbench** | Self-service UI for deploying models, running workspaces, and fine-tuning | Data scientists, developers, and engineers |
+| **AMD AI Workbench** | Self-service UI for deploying models and running development workspaces | Data scientists, developers, and engineers |
 | **AIMs** (AI Inference Microservices) | Pre-packaged AMD-optimized model servers | Deployed and managed through both UIs |
 | **Workspaces** | JupyterLab, VSCode, or ComfyUI environments that run inside the cluster | End users running experiments or tools |
 | **AMD Resource Manager** | Admin UI for clusters, projects, quotas, users, secrets, and storage | IT admins and platform operators |
@@ -81,7 +81,7 @@ Then select your project from the dropdown
 
 ### Browse the Model Catalog
 
-Click **Models** in the left sidebar. You will see a catalog of available AIMs — AMD-packaged model servers for a wide range of model families (Llama, Mistral, Gemma, Deepseek and more).
+Click **Models** in the left sidebar. You will see a catalog of available AIMs — AMD-packaged model servers for a range of model families.
 
 ![AI Workbench model catalog](aai_workshop_images/01-models-catalog.png)
 
@@ -89,11 +89,9 @@ Each card shows the model name, size, and family. AMD has pre-configured the ser
 
 ### Deploy Your Model
 
-1. Find the model your facilitator recommends (e.g., **GPT-OSS-20B**)
+1. Find **GPT-OSS-20B** in the model catalog. This is the AIM used throughout this workshop.
 2. Click the **three-dot menu (⋮)** on the model card
 3. Select **Deploy**
-
-<!-- TODO: pick an non gated model that can be finetuned This comment will not appear in the rendered Markdown -->
 
 ![Model card deploy menu](aai_workshop_images/02-model-card-deploy-menu.png)
 
@@ -109,9 +107,7 @@ In the deployment panel:
 
 ![Performance dropdown](aai_workshop_images/04-deploy-performance-dropdown.png)
 
-- If the model shows a lock icon (gated model), a Hugging Face token field appears. Click **Select existing token** to use the pre-configured secret from Resource Manager.
-
-![Hugging Face token prompt](aai_workshop_images/05-hf-token-prompt.png)
+> **Why GPT-OSS instead of Llama for this lab?** Llama model repositories are gated. Before deploying a Llama AIM, a user must accept the model's access terms on Hugging Face and provide an authorized Hugging Face token, normally through a pre-configured project secret. GPT-OSS-20B avoids that gated-model prerequisite for this workshop. Do not select a Llama AIM unless the facilitator confirms that access and the token are ready.
 
 > **Autoscaling** — **Leave disabled** (do not enable autoscaling for this deployment — the workshop environment has limited GPU quota and enabling autoscaling may cause your deployment to stall in a pending state)
 
@@ -197,123 +193,13 @@ Configure the following parameters:
 
 > **How autoscaling interacts with quotas:** Autoscaling scales within your project's GPU quota. If your quota allows 4 GPUs and each replica uses 1, autoscaling can create up to 4 replicas. When autoscaling borrows resources beyond a project's guaranteed quota, those pods may be preempted if other projects reclaim their allocation.
 
-You can validate autoscaling behavior later using the `vllm bench serve` load test in Part 3 (Optional) — increase concurrency and watch the replica count change in real time in the Workloads tab.
-
-## Undeploying an AIM
-
-When you're done with a deployed model, you should undeploy it to free up GPU resources.
-
-1. In the left sidebar, click **Models**
-2. Select the **Deployed Models** tab
-3. Find the model you want to undeploy and click the **⋮** (three-dot menu) on the right
-4. Click **Undeploy** (shown in red)
-
-![Undeploy AIM from Workbench](aai_workshop_images/workbench-undeploy-AIMs.png)
-
-> **Note:** Undeploying stops the model and releases the GPU allocation back to your project quota. Any running inference requests will be terminated.
-
+You can generate controlled request load later using the `vllm bench serve` test in Part 2 and compare the results with the live metrics in the Workloads tab.
 
 ---
 
-# Part 2: Fine-Tune a Model on Your Own Data (15 minutes)
+# Part 2: Benchmarking with vLLM Bench Serve in VSCode (15 minutes)
 
-Fine-tuning adapts a general-purpose model to your domain — your terminology, your writing style, your proprietary data. This turns a capable but generic model into one that understands your organization's context and produces outputs that match your standards.
-
-**AMD AI Workbench makes fine-tuning a UI workflow** — no Python, no training scripts, no GPU configuration required. You upload a dataset, select a base model, and the platform handles the rest.
-
----
-
-## Step 2A: Upload Training Data
-
-Your training data needs to be in **JSONL format** — one JSON object per line, where each object contains a prompt/response pair. A sample dataset is provided by your facilitator in the subfolder **dataset**:
-
-```
-/dataset/sft-demo-data.jsonl
-```
-<!--  TODO: update this to actual dev repo dataset. This comment will not appear in the rendered Markdown -->
-
-In AMD AI Workbench:
-
-1. Click **Datasets** in the left sidebar
-2. Click **Upload**
-
-![Dataset upload interface](aai_workshop_images/uploading_dataset_finetuning.png)
-
-3. Fill in:
-   - **Dataset name** — e.g., `workshop-demo-data`
-   - **Data type** — `.jsonl` / instruction fine-tuning format
-   - **Description** — optional
-4. Select your file and click **Upload**
-
-> **What is in the dataset?** The sample dataset contains instruction-response pairs in the standard SFT (Supervised Fine-Tuning) format. Each entry looks like:
-> ```json
-> {"messages": [{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]}
-> ```
-> Your production dataset would contain examples of the exact responses you want the model to learn — clinical notes, customer service replies, domain-specific Q&A, and so on.
-
----
-
-## Step 2B: Start a Fine-Tuning Job
-
-1. Click **Models** in the left sidebar → switch to the **Custom Models** tab
-
-![Custom Models view](aai_workshop_images/workbench_custom_models_view.png)
-
-2. Click **Fine-tune model**
-
-![Fine-tune model configuration panel](aai_workshop_images/finetune_model_menu.png)
-
-3. Configure the fine-tuning job:
-
-![Create fine-tuned model panel](aai_workshop_images/finetune_create_model_panel.png)
-
-| Setting | Value | Notes |
-|---|---|---|
-| **Model name** | Any unique name (letters, numbers, underscores, periods, dashes) | Used to identify your custom model |
-| **Base model** | `meta-llama/Llama-3.2-1B-Instruct` | The starting point — your dataset teaches it new behavior |
-| **Training dataset** | `workshop-demo-data` | The training data you uploaded in Step 2A |
-
-Leave the Advanced Settings on default. Or for the sake of time, set **Batch size** and **Number of epochs** to `1`.
-
-
-1. Click **Start training**
-
-2. The fine-tuning job appears in **Workloads** with a **Pending** status badge. You can monitor its progress.
-
-3. Proceed to next step when the status shows **Complete**
-
-> **How long does it take?** With a small dataset on 1 GPU, a 3-epoch job typically finishes in 5–15 minutes. Larger datasets or more epochs take proportionally longer. Resource Manager quotas apply — the training job consumes GPU resources from your project's quota while running.
-
----
-
-## Step 2C: Test Your Fine-Tuned Model
-
-Once training completes, the custom model appears in the **Custom Models** tab in the **Models** side menu.
-
-1. Click the **three-dot menu (⋮)** on your fine-tuned model — then select **Deploy**
-
-![Fine-tuned model deploy menu](aai_workshop_images/finetune_model_deployment_menu.png)
-
-2. In the deployment panel, configure as follows:
-  
-   - **Autoscaling** — **Leave disabled** (do not enable autoscaling for this deployment — the workshop environment has limited GPU quota and enabling autoscaling may cause your deployment to stall in a pending state)
-
-3. Click **Deploy** and wait for status to show **Running**
-4. Navigate to the **Deployed Models** tab
-5. Click **Chat** and ask it questions from the training domain
-
-
-Compare the fine-tuned model's responses against the base model from Part 1. The fine-tuned model should show noticeably better alignment with your domain terminology and the response style captured in the training data.
-
-> **What LoRA produces:** Fine-tuning with LoRA creates a small set of adapter weights — typically 1–5% the size of the base model — that encode the domain-specific behavior you trained. These adapters are stored separately and layered on top of the base model at inference time. The result is a model that retains general capability while applying your domain knowledge precisely where it matters.
-
-
----
-<!-- skip below due to time
-
-# Part 3: Benchmarking with vLLM Bench Serve in VSCode (Optional)
-
-> **This section is optional.** The core workshop (Parts 1–2) does not require it. Come back here if time allows, or explore it after the session to quantify your model's performance under realistic load.
+The AMD AI Workbench includes browser-based development workspaces connected to the cluster. You will use its VSCode workspace to benchmark the GPT-OSS-20B AIM deployed in Part 1 without installing tools on your laptop.
 
 ## Why Benchmark?
 
@@ -321,26 +207,27 @@ Deploying a model is only the first step. Before committing to a production conf
 
 - What is the maximum throughput?
 - Does latency stay within SLO at 10 concurrent users? 50? 100?
-- At what load does autoscaling kick in, and how quickly?
+- At what concurrency does latency degrade or throughput stop increasing?
 
-**`vllm bench serve`** is the standard benchmarking tool for OpenAI-compatible endpoints. It simulates concurrent users, measures throughput and latency percentiles, and produces a summary you can use to validate your SLO targets.
+The `vllm bench serve` tool measures real-world model performance — throughput, latency, and time to first token — under realistic load. Use this to validate model performance before production use.
 
 ---
 
-## Step 3A: Find Your Model's Internal Endpoint
+## Step 2A: Find Your GPT-OSS Model's Internal Endpoint
 
 You need the cluster-internal service URL for the model you deployed in Part 1.
 
 In AMD AI Workbench:
-1. Click **Models** → click your running model
+1. Click **Models** and open the running **GPT-OSS-20B** deployment
 2. Click **Connect** on the model details page
 3. Copy the **Internal URL** — it looks like `http://aim-llm-<model-name>-<id>.<namespace>.svc.cluster.local`
+4. Copy the **Model name or model ID** shown in the connection details. Use that exact value in the benchmark.
 
 Keep this URL — you will use it in the next step.
 
 ---
 
-## Step 3B: Launch a VSCode Workspace
+## Step 2B: Launch a VSCode Workspace
 
 Click **Workspaces** in the left sidebar, then click on the VSCode workspace card (or **Create Workspace** → VSCode).
 
@@ -361,78 +248,118 @@ Once **Running**, click **Open** to launch VSCode in your browser.
 
 ---
 
-## Step 3C: Run the Benchmark
+## Step 2C: Run the Benchmark
 
-In VSCode, open a terminal: **Terminal → New Terminal** (or `` Ctrl+` ``).
-
-Run the benchmark using the Python invocation below — this is the most reliable method and matches exactly what is shown in the screenshot. Substitute your model's internal URL and name from Step 3A:
+In VSCode, open a terminal: **Terminal → New Terminal** (or `` Ctrl+` ``), then prepare the benchmarking tool:
 
 ```bash
-# Set your model endpoint and name
-MODEL_URL="http://aim-llm-<model-name>-<id>.<namespace>.svc.cluster.local"
-MODEL_NAME="meta-llama/Meta-Llama-3-8B-Instruct"   # match the model ID shown in Workbench
+python --version
+python -m venv venv
+source venv/bin/activate
+python -m pip install --upgrade pip
+pip install vllm requests
+```
 
-# Run a benchmark — 100 prompts, 10 concurrent users
-python -m vllm.entrypoints.openai.run_bench \
+> **Expected result:** The virtual environment activates and both packages install without errors. If `python -m venv` reports that `venv` or `ensurepip` is unavailable, stop and ask the facilitator to use a workspace image with Python virtual-environment support. Do not install operating-system packages or use `sudo` inside the managed workspace unless the facilitator explicitly authorizes it.
+
+Set the exact GPT-OSS values copied in Step 2A, then use `requests` to confirm that the endpoint is reachable and that it reports the expected model ID:
+
+```bash
+export BASE_URL="<your-gpt-oss-internal-url>"
+export MODEL="<your-gpt-oss-model-id>"
+
+python - <<'PY'
+import os
+import requests
+
+base_url = os.environ["BASE_URL"].rstrip("/")
+expected_model = os.environ["MODEL"]
+response = requests.get(f"{base_url}/v1/models", timeout=30)
+response.raise_for_status()
+model_ids = [item.get("id") for item in response.json().get("data", [])]
+print("Endpoint check: OK")
+print("Available model IDs:", model_ids)
+if expected_model not in model_ids:
+    raise SystemExit(
+        f"MODEL={expected_model!r} was not returned by /v1/models. "
+        "Copy the exact served model ID and try again."
+    )
+print("Model ID check: OK")
+PY
+```
+
+Expected output includes `Endpoint check: OK` and `Model ID check: OK`. Resolve any connection or model-ID error before running the benchmark.
+
+Create `bench_serve.sh` with the benchmark procedure used in the Workbench guide. It reuses the exported `BASE_URL` and `MODEL` values:
+
+```bash
+cat > bench_serve.sh <<'EOF'
+NUM_PROMPTS=20
+CONC=10
+INPUT_LEN=1024
+OUTPUT_LEN=1024
+ENDPOINT="/v1/chat/completions"
+
+: "${BASE_URL:?Set and export BASE_URL before running this script}"
+: "${MODEL:?Set and export MODEL before running this script}"
+
+vllm bench serve \
+  --ignore-eos \
   --backend openai-chat \
-  --base-url $MODEL_URL \
-  --model $MODEL_NAME \
-  --num-prompts 100 \
-  --max-concurrency 10 \
-  --input-len 256 \
-  --output-len 128
+  --base-url "${BASE_URL}" \
+  --endpoint "${ENDPOINT}" \
+  --model "${MODEL}" \
+  --dataset-name random \
+  --random-input-len ${INPUT_LEN} \
+  --random-output-len ${OUTPUT_LEN} \
+  --num-prompts ${NUM_PROMPTS} \
+  --max-concurrency ${CONC} \
+  --trust-remote-code
+EOF
+
+chmod +x bench_serve.sh
+./bench_serve.sh
 ```
 
 > **What do these parameters mean?**
-> - `--num-prompts 100` — total number of requests to send
-> - `--max-concurrency 10` — simulates 10 simultaneous users
-> - `--input-len 256` / `--output-len 128` — controls the size of synthetic prompts and responses
+> - `NUM_PROMPTS` controls the total requests sent
+> - `CONC` caps simultaneous requests; reduce it if the shared workshop environment is busy
+> - `INPUT_LEN` and `OUTPUT_LEN` set the synthetic prompt and response token lengths
+> - `MODEL` must match the model ID served by your GPT-OSS endpoint
 
 ![vLLM bench serve output](aai_workshop_images/bench_serve.png)
 
-> **Shorthand alias:** If `vllm bench serve` appears in the workspace documentation, it is an alias for the same Python entrypoint. Use the `python -m` form above if the shorthand is not found in PATH.
+---
+
+## Step 2D: Interpret the Benchmark Output
+
+The benchmark prints measured results from your deployment. Do not compare runs unless the model, prompt lengths, output lengths, request count, concurrency, and serving configuration are the same.
+
+| Metric | Meaning | What to Look For |
+|---|---|---|
+| **Throughput** | Total tokens processed per second across all requests | Higher is better for batch workloads |
+| **TTFT** | Time to First Token — how quickly the model starts responding | Lower is better for interactive use; compare P99 with your SLO |
+| **Latency** | End-to-end time per request | Lower is better; compare equivalent workload settings |
+| **Tokens/sec** | Per-request token generation rate | Higher means faster completions per user |
+
+> **Exercise:** Change `NUM_PROMPTS` and `CONC`, re-run the benchmark, and compare throughput and TTFT. Use the Workbench metrics page to correlate client-observed results with the live service metrics.
+
+## Cleanup: Undeploy GPT-OSS-20B
+
+After completing the benchmark, undeploy GPT-OSS-20B to release its GPU allocation:
+
+1. In the Workbench left sidebar, click **Models**
+2. Select the **Deployed Models** tab
+3. Find your GPT-OSS-20B deployment and click the **⋮** (three-dot menu)
+4. Click **Undeploy** (shown in red)
+
+![Undeploy AIM from Workbench](aai_workshop_images/workbench-undeploy-AIMs.png)
+
+> **Note:** Undeploying stops the model and releases the GPU allocation back to your project quota. Any running inference requests will be terminated.
 
 ---
 
-## Step 3D: Interpret the Benchmark Output
-
-When the benchmark completes, you will see a summary like:
-
-```
-============ Serving Benchmark Result ============
-Successful requests:                100
-Benchmark duration (s):             47.23
-Total input tokens:                 25,600
-Total generated tokens:             12,800
-Request throughput (req/s):         2.12
-Output token throughput (tok/s):    271.0
-Total token throughput (tok/s):     813.0
-
-Time to First Token (ms):
-  Mean:   143.2
-  Median: 138.5
-  P99:    312.8
-
-Inter-Token Latency (ms):
-  Mean:   18.4
-  Median: 17.1
-  P99:    41.3
-==================================================
-```
-
-| Metric | What to Look For |
-|---|---|
-| **Request throughput** | Requests/second the model handled sustainably |
-| **TTFT Mean / P99** | P99 TTFT tells you the worst-case latency for 99% of users — compare against your SLO target |
-| **Output token throughput** | Overall generation rate — useful for capacity planning |
-| **Inter-token latency** | Streaming response smoothness — high values cause choppy output in chat interfaces |
-
-> **Exercise:** Increase `--max-concurrency` to 25, re-run the benchmark, and observe how TTFT and throughput change. If autoscaling is configured, switch to the Workbench Workloads tab and watch for a new replica to appear.
-
--->
----
-
-# Part 4: AMD Resource Manager — Platform Administration (10 minutes)
+# Part 3: AMD Resource Manager — Platform Administration (10 minutes)
 
 ## Why Resource Manager?
 
@@ -449,7 +376,7 @@ In this section you will tour the user workflow. Your instructor will also demo 
 
 ---
 
-## Step 4A: Log In to Resource Manager
+## Step 3A: Log In to Resource Manager
 
 Open a browser and navigate to AMD Resource Manager:
 
@@ -467,7 +394,7 @@ The dashboard has two sections:
 
 ---
 
-## Step 4B: Explore the Projects Page
+## Step 3B: Explore the Projects Page
 
 Projects are the primary isolation boundary. Each team or use case gets its own project with its own quota, users, secrets, and storage.
 
@@ -489,7 +416,7 @@ The projects list shows every project provisioned on the cluster, with a summary
 
 ---
 
-## Step 4C: Explore Your Project
+## Step 3C: Explore Your Project
 
 Double-click your assigned project in the list to open its detail view.
 
@@ -510,7 +437,7 @@ The **Workloads** table at the bottom lists every running or queued job in the p
 
 ---
 
-## Step 4D: View Resource Quotas
+## Step 3D: View Resource Quotas
 
 To view quota settings, click the **Actions** button in the top-right corner of the project page.
 
@@ -561,7 +488,7 @@ For teams that need access to shared dataset or model artifact storage, admins c
 
 ![Assign MinIO secret to project](aai_workshop_images/07-assign-secret-minio.png)
 
-The resulting secret is mounted as environment variables into workspaces and fine-tuning jobs — workloads access the bucket automatically without users handling raw credentials.t
+The resulting secret is mounted as environment variables into authorized workspaces and model deployments — workloads access the bucket automatically without users handling raw credentials.
 
 
 ---
@@ -573,9 +500,8 @@ You have now experienced the full administrative and operational lifecycle of th
 | What You Did | What It Demonstrates |
 |---|---|
 | Deployed an AI model and observed live metrics | Production visibility from the first deployment |
-| Configured autoscaling | Dynamic resource efficiency under variable load |
-| Fine-tuned a model on custom data | Domain adaptation without ML engineering expertise |
-| Ran a benchmark with vLLM bench serve (optional) | Quantified SLO validation before production commitment |
+| Reviewed autoscaling controls and quota limits | Dynamic resource efficiency under variable load |
+| Benchmarked GPT-OSS-20B from a VSCode workspace | Quantified throughput and latency before production commitment |
 | Toured Resource Manager — projects, quotas, and secrets | IT governance and multi-team resource control |
 
 **Next steps:**
