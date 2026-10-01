@@ -1183,6 +1183,7 @@ Deploy the Blueprint pointed at the AIM you deployed in Part 1, by listing it as
 ```bash
 helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
   --set llm.existingService=$aimservice \
+  --set llm.env_vars.AIM_ACCELERATOR_MODEL="MI350X" \
   --set http_route.enabled=true \
   | kubectl apply -f - -n $namespace
 ```
