@@ -85,35 +85,82 @@ Then select your project from the dropdown
 
 ### Browse the Model Catalog
 
-Click **Models** in the left sidebar. You will see a catalog of available AIMs — AMD-packaged model servers for a range of model families.
+Expand **Models** in the left sidebar and click **AIM Catalog**. You will see a catalog of available AIMs — AMD-packaged model servers for a range of model families.
 
-![AI Workbench model catalog](aai_workshop_images/01-models-catalog.png)
+![AI Workbench model catalog](aai_workshop_images/wb-aim-catalog.png)
 
-Each card shows the model name, size, and family. AMD has pre-configured the serving stack, hardware tuning, and memory layout for each — you do not configure any of this manually.
+Each card shows the model name, publisher, accelerator type, and version count. AMD has pre-configured the serving stack, hardware tuning, and memory layout for each — you do not configure any of this manually.
 
 ### Deploy Your Model
 
-1. Find **GPT-OSS-20B** in the model catalog. This is the AIM used throughout this workshop.
-2. Click the **three-dot menu (⋮)** on the model card
-3. Select **Deploy**
+1. Find **GPT OSS 20B** in the AIM Catalog. This is the AIM used throughout this workshop.
+2. Click the **Deploy** button on the model card.
 
-![Model card deploy menu](aai_workshop_images/02-model-card-deploy-menu.png)
+![Model card with Deploy button](aai_workshop_images/wb-model-card-deploy.png)
 
-> **Note:** You may see fewer models than shown here. Administrators control which models are available to each user, so your menu will only display the models you have been granted access to.
+> **Note:** You may see fewer models than shown here. Administrators control which models are available to each user, so your catalog will only display the models you have been granted access to.
+
+> **Why GPT-OSS instead of Llama for this lab?** Llama model repositories are gated — shown with a **Gated** badge on the card. Before deploying a Llama AIM, a user must accept the model's access terms on Hugging Face and provide an authorized Hugging Face token, normally through a pre-configured project secret. GPT-OSS-20B avoids that gated-model prerequisite for this workshop. Do not select a Llama AIM unless the facilitator confirms that access and the token are ready.
 
 ### Configure the Deployment
 
-In the deployment panel:
+Clicking **Deploy** opens the **Model Deployment** wizard, which walks through four steps — **Model**, **Deployment**, **Scaling**, and **Check**. Use **Next** to advance and **Back** to revise; the wizard does not deploy anything until you press **Submit** on the final step.
 
-![Deployment configuration panel](aai_workshop_images/03-deploy-config-panel.png)
+#### Step 1 — Model
 
-- **Performance metric** — Select **Latency** for this workshop
+Confirm the model and pick a **Container version**. Leave the default **(Latest)** for this workshop. **Image pull secrets** can be left empty for ungated models like GPT OSS 20B.
 
-![Performance dropdown](aai_workshop_images/04-deploy-performance-dropdown.png)
+![Deployment wizard — Model step](aai_workshop_images/wb-deploy-wizard-1-model.png)
 
-### Configure Autoscaling
+#### Step 2 — Deployment
 
-> **Important — GPU capacity limit:** For this workshop, please do not configure autoscaling since each participant project has a limited GPU quota shared across the lab environment. If you would like to try it in the developer zone, set **Max replicas to 1**. If you set a higher max, the autoscaler may attempt to schedule additional replicas that exceed your quota — the workload will hang in a pending state and never run. Keep it at 1 to ensure your deployment starts successfully.
+Optionally give the deployment a **Name**, then choose a **Performance metric**:
+
+![Deployment wizard — Deployment step](aai_workshop_images/wb-deploy-wizard-2-deployment.png)
+
+| Option | What It Does |
+|---|---|
+| **Latency** | Prioritize low time-to-first-token — **select this for the workshop** |
+| **Throughput** | Prioritize sustained requests per second |
+| **Advanced profile selection** | Choose the serving profile manually |
+
+**Latency** is selected by default. Once chosen, the platform resolves the matching hardware profile for you — for GPT OSS 20B that is **fp4** precision on **MI350X × 1**, optimization class **Optimized**.
+
+#### Step 3 — Scaling
+
+The **Scaling** step is marked **Optional**. For this workshop, leave **Enable autoscaling** toggled **off** and click **Next**.
+
+![Deployment wizard — Scaling step](aai_workshop_images/wb-deploy-wizard-3-scaling.png)
+
+This step also shows a running summary of the **Model** and **Deployment** choices you made, each with an **Edit** button if you need to go back.
+
+> **Important — GPU capacity limit:** Leave autoscaling **off** for this workshop. Each participant project has a limited GPU quota shared across the lab environment; if the autoscaler tries to schedule replicas beyond that quota, the workload hangs in a pending state and never runs. See [Autoscaling — Optional Reference](#autoscaling--optional-reference) after Step 4 if you want to explore it in the developer zone.
+
+#### Step 4 — Check
+
+The final step summarizes everything before anything is created. Confirm the values match the table below, then click **Submit**.
+
+![Deployment wizard — Check step](aai_workshop_images/wb-deploy-wizard-4-check.png)
+
+| Field | Expected Value |
+|---|---|
+| **Model** | GPT OSS 20B |
+| **Container version** | 0.11.1 (Latest) |
+| **Performance metrics** | Latency |
+| **Precision** | fp4 |
+| **Accelerator** | MI350X × 1 |
+| **Optimization class** | Optimized |
+| **Autoscaling** | Disabled |
+
+> **Nothing is deployed until you click Submit.** You can safely open the wizard and page through all four steps to explore the options, then **Cancel** or close it without consuming any GPU quota.
+
+After you click **Submit**, continue to Step 1C to watch the deployment start.
+
+---
+
+### Autoscaling — Optional Reference
+
+> **Not part of the workshop path.** Leave autoscaling disabled for this lab; this section is reference material for your own environment.
 
 Autoscaling automatically adjusts the number of running model replicas based on real-time demand — scaling up during traffic spikes and back down during low usage, so you only consume GPU resources when you need them.
 
@@ -121,7 +168,7 @@ Autoscaling automatically adjusts the number of running model replicas based on 
 
 #### Enable Autoscaling at Deploy Time
 
-When deploying a model, locate the **Autoscaling** section in the deployment drawer and toggle **Enable autoscaling** on:
+To enable autoscaling, toggle **Enable autoscaling** on in the **Scaling** step of the deployment wizard, which expands the parameters below:
 
 ![Autoscaling configuration panel](aai_workshop_images/autoscaling.png)
 
@@ -136,7 +183,7 @@ Configure the following parameters:
 | **Target type** | Absolute value (default) | How the target threshold is interpreted |
 | **Target value** | 10 (default) | Scale up when total running requests across all pods exceed this number |
 
-> **Important — GPU capacity limit:** For this workshop, set **Max replicas to 1**. Each participant project has a limited GPU quota shared across the lab environment. If you set a higher max, the autoscaler may attempt to schedule additional replicas that exceed your quota — the workload will hang in a pending state and never run. Keep it at 1 to ensure your deployment starts successfully.
+> **Important — GPU capacity limit:** If you do enable autoscaling in the developer zone, set **Max replicas to 1**. Each participant project has a limited GPU quota shared across the lab environment. If you set a higher max, the autoscaler may attempt to schedule additional replicas that exceed your quota — the workload will hang in a pending state and never run.
 
 #### How It Works
 
@@ -155,10 +202,6 @@ Configure the following parameters:
 
 You can generate controlled request load later using the `vllm bench serve` test in Part 2 and compare the results with the live metrics in the Workloads tab.
 
-> **Why GPT-OSS instead of Llama for this lab?** Llama model repositories are gated. Before deploying a Llama AIM, a user must accept the model's access terms on Hugging Face and provide an authorized Hugging Face token, normally through a pre-configured project secret. GPT-OSS-20B avoids that gated-model prerequisite for this workshop. Do not select a Llama AIM unless the facilitator confirms that access and the token are ready.
-
-Click **Deploy**.
-
 ---
 
 ## Step 1C: Monitor Your Model — Live Inference Metrics
@@ -173,9 +216,11 @@ Wait for the status to change to **Running**.
 
 ### Explore Live Metrics
 
-Once the model is running, click the **three-dot menu** on the right side of the model row and select **Open Details** to view the real-time metrics dashboard:
+Once the model is running, go to **Models → Deployed Models**, click the **three-dot menu (⋮)** at the right of the model row, and select **Open details** to view the real-time metrics dashboard:
 
-![Workbench deployed model menu with Open Details option](aai_workshop_images/workbench-dashboard-model-open-details.png)
+![Deployed model actions menu](aai_workshop_images/wb-deployed-model-actions.png)
+
+The same menu provides **Chat with model**, **Connect to model**, and **Undeploy** — all three are used later in this workshop.
 
 | SLA Metric | What It Tells You |
 |---|---|
@@ -189,10 +234,23 @@ Once the model is running, click the **three-dot menu** on the right side of the
 
 ### Chat with Your Model
 
-From the model details page, click **Chat**. Ask a question and observe:
+Open the chat interface in either of two ways:
+
+- From **Models → Deployed Models**, click the **three-dot menu (⋮)** on the model row and select **Chat with model**, or
+- Click **Chat** in the left sidebar and pick your deployment from the **Select model** dropdown at the top right.
+
+Either route opens the Chat view with your deployment already selected. The model selector shows the deployment's resolved configuration — container version, performance metric, accelerator, and precision — so you can confirm you are talking to the right instance.
+
+Type a question in the message box and press **Enter**:
+
+![Chat with the deployed GPT OSS 20B model](aai_workshop_images/wb-chat-with-model.png)
+
+Ask a question and observe:
 - The response latency (TTFT)
 - The quality of the response
 - How the metrics dashboard updates in real time as you generate traffic
+
+> **Tip:** The **Compare** tab next to **Chat** lets you send the same prompt to several deployments side by side — useful for weighing a smaller, faster AIM against a larger one. The gear icon opens generation settings such as temperature and max tokens.
 
 ---
 
@@ -218,14 +276,23 @@ First, collect the connection information for the GPT-OSS-20B model that you dep
 
 In AMD AI Workbench:
 
-1. Click **Models** and open the **AIM Catalog** or **Deployed Models** tab. You can also locate the deployment under **Workloads**.
-2. Find the running **GPT-OSS-20B** deployment.
-3. Open its three-dot action menu and select **Connect**. This opens the connection dialog.
-4. Copy the **Internal URL**. It looks like `http://aim-llm-<model-name>-<id>.<namespace>.svc.cluster.local`. Use the internal URL because the VSCode workspace runs inside the same platform.
-5. Copy the exact **Model name or model ID** shown in the dialog. Do not guess it from the display name.
-6. In the connection dialog's sample-code box, select the **Python** tab and click the **Copy** icon in the upper-right corner. Keep this copied code available; you will paste it into a Python file in Step 2B.
+1. Expand **Models** in the left sidebar and click **Deployed Models**.
+2. Find the running **GPT-OSS-20B** deployment (status **Running**).
+3. Open its **three-dot action menu (⋮)** and select **Connect to model**. This opens the connection dialog.
 
-> **Internal versus external URL:** The **Internal URL** is for applications and workspaces running inside this AMD Enterprise AI platform. The **External URL** is for clients outside the platform and may require authentication or other routing information. Use the **Internal URL** for this workshop.
+![Connect to model dialog](aai_workshop_images/wb-connect-to-model.png)
+
+4. Copy the **Internal URL**. It looks like `http://wb-aim-<id>-<id>-predictor.<namespace>.svc.cluster.local`. Use the internal URL because the VSCode workspace runs inside the same platform.
+5. Copy the exact **model ID** shown in the code snippet (for this workshop, `openai/gpt-oss-20b`). Do not guess it from the display name.
+6. In the dialog's **CODE SNIPPET** box, toggle **Use internal URL** on, select the **Python** tab, and click the **Copy** icon in the upper-right corner. Keep this copied code available; you will paste it into a Python file in Step 2B.
+
+> **Toggle "Use internal URL" before copying.** The snippet defaults to the external gateway URL. Flipping the toggle rewrites the snippet to use the cluster-internal address, which is what the VSCode workspace needs.
+
+> **Replace the API key placeholder.** The generated snippet contains `UPDATE_YOUR_API_KEY_HERE`. Substitute a key you create under **API Keys** in the left sidebar.
+
+> **Internal versus external URL:** The **Internal URL** is reachable only from inside the cluster — use it from the VSCode workspace. The **Inference URL** is the unified AI gateway, reachable from outside the cluster, and requires an API key. Use the **Internal URL** for this workshop.
+
+> **Shortcut:** The same dialog has an **Open in chat** button, which opens the Chat view with this deployment preselected.
 
 > **Reference:** Follow AMD's [Find model endpoints](https://enterprise-ai.docs.amd.com/en/latest/workbench/inference/how-to-deploy-and-inference.html#find-model-endpoints) instructions for the **Connect** dialog, URL selection, Python tab, and copy button.
 
