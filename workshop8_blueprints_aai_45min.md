@@ -378,16 +378,11 @@ spec:
               path: /v1/models
               port: http
           volumeMounts:
-            - name: model-cache
-              mountPath: /workspace/model-cache
             - name: ephemeral-storage
               mountPath: /tmp
             - name: dshm
               mountPath: /dev/shm
       volumes:
-        - name: model-cache
-          persistentVolumeClaim:
-            claimName: aim-model-cache
         - name: ephemeral-storage
           emptyDir:
             sizeLimit: 256Gi
