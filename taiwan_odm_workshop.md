@@ -35,7 +35,7 @@ This workshop takes you deep into the administrative and operational capabilitie
 
 You will:
 1. **Kubernetes Concepts - Slides**
-2. **Deploy and manage the GPT-OSS-20B AIM** through AMD AI Workbench — observe live inference metrics, configure autoscaling, and chat with the running model
+2. **Deploy and manage the GPT-OSS-20B AIM** through AMD AI Workbench — observe live inference metrics, configure autoscaling, chat with the running model, and tour the fine-tuning workflow
 3. **Benchmark a deployed model in VSCode** — measure throughput, latency, and time to first token with `vllm bench serve`
 4. **Explore AMD Resource Manager** — view node GPU metrics and the admin control plane for projects, quotas, secrets, and storage
 5. **Deploy an AIM with kubectl** — use a CLI-native Kubernetes workflow
@@ -56,7 +56,7 @@ No prior Kubernetes or ML engineering experience is required. Each browser and l
 
 ---
 
-# Part 1: AMD AI Workbench — Model Deployment and Autoscaling (20 minutes)
+# Part 1: AMD AI Workbench — Model Deployment, Autoscaling, and Fine-Tuning (25 minutes)
 
 ## Why Workbench?
 
@@ -251,6 +251,55 @@ Ask a question and observe:
 - How the metrics dashboard updates in real time as you generate traffic
 
 > **Tip:** The **Compare** tab next to **Chat** lets you send the same prompt to several deployments side by side — useful for weighing a smaller, faster AIM against a larger one. The gear icon opens generation settings such as temperature and max tokens.
+
+---
+
+## Step 1D: Fine-Tuning in Workbench (Tour Only)
+
+> **Walkthrough, not a hands-on lab.** Fine-tuning runs take far longer than the workshop slot and consume GPU quota for the duration. Follow along to see where the controls live; do not click **Start training** unless the facilitator asks you to.
+
+Fine-tuning adapts a base AIM to your own data — domain vocabulary, house tone of voice, a specific output format — without training a model from scratch. In Workbench it is a two-part flow: upload a **dataset**, then create a **fine-tuned model** that references it.
+
+### Upload a Training Dataset
+
+Expand **Fine-tuning** in the left sidebar and click **Datasets**.
+
+![Fine-tuning datasets page](aai_workshop_images/wb-finetune-datasets.png)
+
+Click **Upload** to add training data. Workbench expects **JSONL conversation datasets** — one JSON object per line, each holding a conversation. The **Actions** menu operates on datasets already in the list.
+
+### Create a Fine-Tuned Model
+
+Click **Fine-tune models** in the sidebar. This lists every fine-tuning run in the project with its status and associated workloads.
+
+![Fine-tune models list](aai_workshop_images/wb-finetune-models-list.png)
+
+Click **Fine-tune model** at the top right to open the creation panel:
+
+![Create fine-tuned model panel](aai_workshop_images/wb-finetune-create-panel.png)
+
+| Field | What It Does |
+|---|---|
+| **Model name** (required) | Unique name; letters, numbers, underscores, periods, and dashes only |
+| **Base model** | The AIM to adapt — the starting weights for training |
+| **Training dataset** | A dataset you uploaded in the previous step |
+| **Model description** | Free-text note describing the run's purpose |
+
+### Advanced Settings
+
+Expand **Advanced settings** to control the training hyperparameters. All three default to **Auto**, which lets the platform choose based on your dataset:
+
+![Fine-tuning advanced settings](aai_workshop_images/wb-finetune-advanced-settings.png)
+
+| Parameter | Recommended Range | What It Controls |
+|---|---|---|
+| **Batch size** | 1–128 | Training examples processed per step — larger uses more GPU memory |
+| **Number of epochs** | 1–10 | Full passes over the training dataset; too many risks overfitting |
+| **Learning rate multiplier** | 0.1–10 | Scales the base learning rate — lower is more conservative |
+
+> **Start with Auto.** Leave all three on **Auto** for a first run, then tune only if the results justify it. Hand-set values are easy to get wrong and each retry costs another full training run.
+
+Clicking **Start training** queues the run and returns you to the **Fine-tune models** list, where it appears with a live status. Once training completes, the resulting model shows up under **Models → Custom Models** and can be deployed exactly like a catalog AIM.
 
 ---
 
@@ -481,11 +530,15 @@ The dashboard has two sections:
 
 ## Step 3B: View GPU Metrics for a Node
 
-1. Click **Clusters** in the left sidebar, then open the workshop cluster.
-2. In the nodes table, select a GPU node to open its detail page.
+1. Click **Clusters** in the left sidebar, then open the workshop cluster (`demo-cluster`).
+2. In the nodes table, select a GPU node to open its detail page. GPU nodes are named `p01-rNN-nNN`; the `mgmt` nodes have no GPUs attached.
 3. Scroll to **Device metrics**.
-4. Use the device selector to filter the charts to a specific GPU, or leave the default selection to view all available devices.
+4. Use the device selector to filter the charts to a specific GPU, or leave it on **All devices** to view every GPU on the node.
 5. Use the time-range selector to view data from the last **1 hour**, **24 hours**, or **7 days**.
+
+![Node device metrics in Resource Manager](aai_workshop_images/rm-node-device-metrics.png)
+
+The **GPU utilization** chart can be switched between **Memory utilization**, **Clock speed**, and **GPU usage** using the tabs at its top right. Below the chart, a tile per device shows that GPU's current value — this node exposes 64 devices, so the tiles are the fastest way to spot an outlier before drilling into a single device with the selector.
 
 Explore the available charts for the selected device and time range. The controls are shared across the GPU metric views, so you can change the filter once and review the charts without configuring each one separately.
 
