@@ -262,11 +262,12 @@ Fine-tuning adapts a base AIM to your own data — domain vocabulary, house tone
 
 ### Upload a Training Dataset
 
-Expand **Fine-tuning** in the left sidebar and click **Datasets**.
+1. Download the workshop dataset: [**test-small.jsonl**](dataset/test-small.jsonl). On GitHub, click **Download raw file** and save it to your laptop.
+2. Expand **Fine-tuning** in the left sidebar and click **Datasets**.
 
 ![Fine-tuning datasets page](aai_workshop_images/wb-finetune-datasets.png)
 
-Click **Upload** to add training data. Workbench expects **JSONL conversation datasets** — one JSON object per line, each holding a conversation. The **Actions** menu operates on datasets already in the list.
+3. Click **Upload**, select the downloaded `test-small.jsonl` file, name the dataset `test-small`, and complete the upload. Workbench expects **JSONL conversation datasets** — one JSON object per line, each holding a conversation. This workshop file contains 241 conversations in the required `messages` format. The **Actions** menu operates on datasets already in the list.
 
 ### Create a Fine-Tuned Model
 
@@ -282,7 +283,7 @@ Click **Fine-tune model** at the top right to open the creation panel:
 |---|---|
 | **Model name** (required) | Unique name; letters, numbers, underscores, periods, and dashes only |
 | **Base model** | The AIM to adapt — the starting weights for training |
-| **Training dataset** | A dataset you uploaded in the previous step |
+| **Training dataset** | Select `test-small`, the dataset uploaded in the previous step |
 | **Model description** | Free-text note describing the run's purpose |
 
 ### Advanced Settings
