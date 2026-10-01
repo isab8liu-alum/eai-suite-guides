@@ -11,8 +11,6 @@ Use the following workshop endpoints and your assigned participant number:
 
 | Service | URL or value |
 |---|---|
-| **AMD AI Workbench** | [https://aiwbui.amd-workshop.silogen.ai/](https://aiwbui.amd-workshop.silogen.ai/) |
-| **AMD Resource Manager** | [https://airmui.amd-workshop.silogen.ai/](https://airmui.amd-workshop.silogen.ai/) |
 | **Kubernetes API** | `https://k8s.amd-workshop.silogen.ai` |
 
 - **Username:** `userN@amd-workshop.silogen.ai` — replace `N` with your assigned number (for example, `user1@amd-workshop.silogen.ai`)
@@ -29,7 +27,6 @@ You will:
 1. **Deploy an AIM via kubectl** — the CLI-native approach for launching a model on the cluster (llama-3.2-1b-instruct)
 2. **Deploy a complete medical imaging AI application** using a Solution Blueprint — pointed directly at the AIM you just deployed
 3. **Customize the Blueprint** — tear down the initial deployment and redeploy it with default AIM
-4. **(Optional)** Deploy and monitor an AI model through the AMD AI Workbench UI
 
 No deep Kubernetes or ML experience required. Every command is explained step by step.
 
@@ -75,16 +72,14 @@ The tools below are installed during Step 1A. For reference:
 
 | Component | What It Does | Why It Matters |
 |---|---|---|
-| **AMD AI Workbench** | Web UI for deploying, chatting with, and managing AI models | Teams self-serve AI without waiting on IT |
 | **AIMs** (AI Inference Microservices) | Pre-packaged, AMD-optimized model servers | Deployment in minutes instead of weeks |
 | **Solution Blueprints** | Complete AI applications — UI, backend, and model — in one package | Working starting points; no app dev required |
-| **Resource Manager** | Admin UI for clusters, quotas, users, and storage | IT control over who uses what resources |
 
 ---
 
 # Part 1: Deploy an AIM via kubectl (15 minutes)
 
-The AMD AI Workbench UI is ideal for self-service model deployment, but enterprise platform teams often need to deploy AIMs programmatically from CI/CD pipelines, scripts, or automation tooling. In this lab you will deploy a minimal AIM service with standard Kubernetes `Deployment` and `Service` manifests.
+Enterprise platform teams often deploy AIMs programmatically from CI/CD pipelines, scripts, or automation tooling. In this lab you will deploy a minimal AIM service with standard Kubernetes `Deployment` and `Service` manifests.
 
 > **When would you use this?** Scripted deployments, automated scaling triggers, GitOps workflows, or workshop namespaces that are already prepared by a platform administrator.
 
@@ -330,7 +325,7 @@ this doesn't work! get error can't get secret-->
 
 TODO facilitator add hf-token to all project namespaces as kubernetes secrets -->
 
-> **Note:** Hugging Face tokens have been pre-loaded into your project namespace for this workshop. As a regular project user you do not have permission to view or modify secrets directly — this is by design. In a real deployment, you would manage secrets as a platform admin through AMD Resource Manager or via `kubectl` with admin credentials.
+> **Note:** Hugging Face tokens have been pre-loaded into your project namespace for this workshop. As a regular project user you do not have permission to view or modify secrets directly — this is by design. In a real deployment, a platform administrator would manage them through Kubernetes or an external secret manager.
 
 ---
 
@@ -523,15 +518,13 @@ aimservice="minimal-aim-deployment"
 ```
 
 ---
-## CLI vs. UI: When to Use Each
+## CLI Deployment Patterns
 
-| Scenario | Use |
+| Scenario | Recommended approach |
 |---|---|
-| Developer / data scientist self-service | **Workbench UI** |
 | Automated deployment from CI/CD | **kubectl / AIM Engine CLI** |
 | GitOps — model config stored in git | **kubectl apply** with YAML manifests |
 | Batch deployment of many models | **kubectl** with a loop or Helm |
-| Exploring the catalog and testing models | **Workbench UI** |
 
 ---
 
@@ -558,6 +551,8 @@ The **MRI Documentation Blueprint** (`aimsb-mri-doc`) provides:
 ```bash
 name="my-deployment"       # A unique label for your Blueprint deployment
 chart="aimsb-mri-doc"      # The MRI Documentation Blueprint
+gateway_domain="amd-workshop.silogen.ai"
+blueprint_url="https://aimsb-mri-doc-$name.$gateway_domain/"
 ```
 
 ### Deploy
@@ -567,8 +562,13 @@ Deploy the Blueprint pointed at the AIM you deployed in Part 1, by listing it as
 ```bash
 helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
   --set llm.existingService=$aimservice \
+  --set http_route.enabled=true \
+  --set http_route.gateway.name=https \
+  --set http_route.gateway.namespace=envoy-gateway-system \
   | kubectl apply -f - -n $namespace
 ```
+
+The HTTP routing settings create a namespaced `HTTPRoute` and attach it to the workshop cluster's TLS-enabled `https` Gateway.
 
 ### Verify the Deployment
 
@@ -582,36 +582,37 @@ This opens a live dashboard scoped to your namespace. Pods will initially show `
 
 ![Blueprint deployment in progress](aai_workshop_images/blueprint-wsl-deployment.png)
 
-### Access the MRI Documentation Application via Port-Forward
-
-Once the deployment is running, forward the Blueprint service to your local machine:
+Confirm that Kubernetes accepted the HTTPS route and resolved its service reference:
 
 ```bash
-kubectl port-forward services/aimsb-mri-doc-$name 7861:80 -n $namespace
+kubectl get httproute aimsb-mri-doc-$name -n $namespace
+kubectl describe httproute aimsb-mri-doc-$name -n $namespace
 ```
 
-This tunnels traffic from **http://localhost:7861** on your machine to the Blueprint service running in the cluster. Keep this terminal open — closing it will stop the tunnel.
+In the `Status` section, look for `Accepted=True` and `ResolvedRefs=True`. If either condition is false, show the `kubectl describe` output to the facilitator before continuing.
 
-Open a browser and navigate to:
+### Access the MRI Documentation Application via HTTPS
 
+Once the deployment and route are ready, print the application URL:
+
+```bash
+echo "$blueprint_url"
 ```
-http://localhost:7861
+
+The workshop Gateway terminates TLS and routes the hostname to the Blueprint service in your namespace. No local port-forward is required.
+
+Verify HTTPS from the terminal:
+
+```bash
+curl --fail --show-error --location "$blueprint_url"
 ```
 
-You should see the MRI Documentation interface. Try uploading a sample MRI report or asking it a question about an imaging study.
-
-> **Note:** Each participant must run port-forward from their own terminal using their own session. Port-forward is local to your machine and does not affect other participants' sessions.
-
-<!--isabelleliu@Isabelles-Laptop .kube % echo "https://aimsb-mri-doc-$name$(kubectl get gtw -A -o jsonpath='{.items[*].spec.listeners[?(@.name=="https")].hostname}' | tr -d \*)/"
-Error from server (Forbidden): gateways.gateway.networking.k8s.io is forbidden: User "oidc:user1@amd-workshop.silogen.ai" cannot list resource "gateways" in API group "gateway.networking.k8s.io" at the cluster scope
-https://aimsb-mri-doc-my-deployment/
-isabelleliu@Isabelles-Laptop .kube % echo "https://aimsb-mri-doc-$name$(kubectl get gtw -A -o jsonpath='{.items[*].spec.listeners[?(@.name=="https")].hostname}' | tr -d \*)/"
-Error from server (Forbidden): gateways.gateway.networking.k8s.io is forbidden: User "oidc:user1@amd-workshop.silogen.ai" cannot list resource "gateways" in API group "gateway.networking.k8s.io" at the cluster scope
-https://aimsb-mri-doc-my-deployment/-->
+Open the printed URL in your browser. You should see the MRI Documentation interface. Try uploading a sample MRI report or asking it a question about an imaging study.
 
 > **What does this do?**
 > - `helm template` downloads the Blueprint chart from AMD's registry and renders it into Kubernetes configuration files
 > - `--set llm.existingService=$aimservice` points the Blueprint at the Llama 3.2 1B AIM service you deployed in Part 1 — no second model pod is created
+> - `--set http_route.enabled=true` creates the `HTTPRoute`; the next two settings attach it to the cluster's HTTPS Gateway
 > - `kubectl apply` sends the rendered configuration to the cluster
 
 
@@ -627,10 +628,14 @@ Blueprints are open-source — the source code is available on GitHub and every 
 
 **1. Tear Down and Redeploy with a Default AIM**
 
-Stop the port-forward (`Ctrl+C`) and delete the existing Blueprint:
+Delete the existing Blueprint and its HTTPS route:
 
 ```bash
 helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
+  --set llm.existingService=$aimservice \
+  --set http_route.enabled=true \
+  --set http_route.gateway.name=https \
+  --set http_route.gateway.namespace=envoy-gateway-system \
   | kubectl delete -f - -n $namespace
 ```
 
@@ -638,17 +643,21 @@ Wait for pods to terminate (watch in k9s), then redeploy the Blueprint — this 
 
 ```bash
 helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
---set llm.env_vars.AIM_ACCELERATOR_MODEL="MI350X" \
+  --set llm.env_vars.AIM_ACCELERATOR_MODEL="MI350X" \
+  --set http_route.enabled=true \
+  --set http_route.gateway.name=https \
+  --set http_route.gateway.namespace=envoy-gateway-system \
   | kubectl apply -f - -n $namespace
 ```
 
-Wait for pods to restart, then port-forward to access the UI:
+Wait for the pods to restart, then confirm the route is accepted:
 
 ```bash
-kubectl port-forward services/aimsb-mri-doc-$name 7861:80 -n $namespace
+kubectl get httproute aimsb-mri-doc-$name -n $namespace
+curl --fail --show-error --location "$blueprint_url"
 ```
 
-Then open **http://localhost:7861** in your browser. The Blueprint is now powered by your shared AIM instead of its bundled model.
+Open `$blueprint_url` in your browser. The Blueprint is now powered by the AIM included by the chart instead of the shared AIM from Part 1.
 
 > **Why does this matter?** Running a separate model per application wastes GPU resources and creates management complexity. By pointing Blueprints at a shared AIM, your team gets one model to monitor, update, and scale — and every application benefits automatically. This is also how you would swap in a different model without rebuilding the Blueprint.
 
@@ -792,6 +801,9 @@ pwd   # should end with solution-blueprints/mri-doc
 
 helm upgrade $name oci://registry-1.docker.io/amdenterpriseai/$chart \
   --set llm.existingService=$aimservice \
+  --set http_route.enabled=true \
+  --set http_route.gateway.name=https \
+  --set http_route.gateway.namespace=envoy-gateway-system \
   -f values.yaml -n $namespace
 ```
 
@@ -841,102 +853,15 @@ Leave the `hf-token` Secret in place. It is a namespace-level workshop credentia
 
 ---
 
-# Part 3: Deploy an AI Model with AMD AI Workbench (Optional)
-
-> **This section is optional.** Parts 1 and 2 are the core workshop. Come back here if time allows, or explore it after the session to see how the platform's self-service UI works end-to-end.
-
-AMD AI Workbench is the self-service portal your data scientists, developers, and engineers use to deploy models, test them, and connect them to applications — with no command-line knowledge required.
-
----
-
-## Step 3A: Log In to AMD AI Workbench
-
-Open a browser and navigate to AMD AI Workbench:
-
-- [https://aiwbui.amd-workshop.silogen.ai/](https://aiwbui.amd-workshop.silogen.ai/)
-
-Sign in as `userN@amd-workshop.silogen.ai`, replacing `N` with your assigned participant number. Use the password provided by the facilitator. After login, confirm you are in the correct **project** — look for the project name in the top navigation bar.
-
-![AMD AI Workbench login page](aai_workshop_images/login-page.png)
-
----
-
-## Step 3B: Deploy an AI Model
-
-### Browse the Model Catalog
-
-Click **Models** in the left sidebar. You will see a catalog of available AI models.
-
-![AI Workbench model catalog](aai_workshop_images/01-models-catalog.png)
-
-Each card represents an AIM — a model that AMD has pre-packaged with the optimal serving configuration for AMD hardware. You do not need to worry about model weights, GPU configuration, or serving frameworks.
-
-### Start the Deployment
-
-1. Find the model recommended by your facilitator (e.g., **Llama 3.1 8B** or **Mistral 7B**)
-2. Click the **three-dot menu (⋮)** in the bottom-right corner of the model card
-3. Select **Deploy**
-
-![Model card three-dot menu with Deploy option](aai_workshop_images/02-model-card-deploy-menu.png)
-
-### Configure the Deployment
-
-In the **Deployment Settings** panel that appears:
-
-![Deployment configuration panel](aai_workshop_images/03-deploy-config-panel.png)
-
-- **Performance metric** — Select **Latency** for this workshop (optimizes for fast, interactive responses)
-
-![Performance metric dropdown](aai_workshop_images/04-deploy-performance-dropdown.png)
-
-- **Unoptimized deployment** — Leave this **off**
-- If the model shows a **lock icon** (gated model, e.g., Llama family), a Hugging Face authentication section appears. Click **Select existing token** to use the pre-configured workshop token.
-
-![Hugging Face token prompt for gated models](aai_workshop_images/05-hf-token-prompt.png)
-
-Click **Deploy**. A confirmation message will appear.
-
----
-
-## Step 3C: Monitor Your Model and Explore Inference Metrics
-
-### Watch the Deployment
-
-Click **Workloads** in the left sidebar. Find your model — it will show **Pending** or **Starting** initially.
-
-> **What is happening?** The platform is scheduling the model container on a GPU node, pulling the image, and initializing the serving process. This typically takes 3–5 minutes.
-
-Wait for the status to change to **Running** before continuing.
-
-### Explore Live Metrics
-
-Once Running, click **Open details** (or the model name) to see real-time performance data:
-
-| Metric | What It Tells You |
-|---|---|
-| **Requests/second** | Current query load on the model |
-| **Time to First Token (TTFT)** | How quickly the model starts generating a response |
-| **Throughput** | Total tokens generated per second |
-| **SLO compliance** | Whether the model is meeting its latency Service Level Objectives |
-
-> **Why do SLOs matter?** Enterprise teams commit to response time guarantees for their applications. This dashboard shows whether the model meets those targets — before you put it in production.
-
-### Chat with Your Model
-
-From the model details page, click **Chat** to open a direct conversation interface. Ask a question, evaluate the response quality, and observe the latency.
-
----
-
 ## Workshop Complete
 
-You have now experienced the AMD Enterprise AI Software Stack end-to-end:
+You have now completed the core CLI deployment workflow for AIMs and Solution Blueprints:
 
 | What You Did | What It Demonstrates |
 |---|---|
 | Deployed an AIM via kubectl | Programmable, CLI-native model lifecycle management |
 | Deployed a Solution Blueprint pointed at your AIM | Complete AI applications in minutes, no redundant model deployment |
 | Tore down and redeployed the Blueprint with a different configuration | Open-source, composable applications that share a single model |
-| Deployed and monitored an AI model via Workbench UI | Self-service AI for teams without infrastructure expertise |
 
 **Next steps:**
 - Explore additional Solution Blueprints at [AMD Enterprise AI](https://enterprise-ai.docs.amd.com)
