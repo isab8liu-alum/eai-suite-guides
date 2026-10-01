@@ -415,8 +415,7 @@ cd /workload
 source /workload/venv/bin/activate
 
 export BASE_URL="<your-gpt-oss-internal-url>"
-export MODEL="<your-gpt-oss-model-id>"
-export BASE_URL="${BASE_URL%/}"
+export MODEL="openai/gpt-oss-20b"
 
 python -m pip install vllm
 ```
