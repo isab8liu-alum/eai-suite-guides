@@ -212,55 +212,22 @@ The `vllm bench serve` tool measures real-world model performance — throughput
 
 ---
 
-## Step 2A: Connect to Your GPT-OSS Model from VSCode
+## Step 2A: Find and Copy Your GPT-OSS Model Endpoint
 
-You will copy the model's cluster-internal endpoint, open a VSCode workspace in the same platform, and send a simple OpenAI-compatible API request. AMD AI Workbench shows both external and internal URLs; use the **Internal URL** from a Workbench workspace because the workspace runs inside the same platform.
-
-### Copy the Endpoint Details
+First, collect the connection information for the GPT-OSS-20B model that you deployed in Part 1. You will use it after launching VSCode in Step 2B.
 
 In AMD AI Workbench:
 
-1. Click **Models**, then open the **Deployed Models** tab.
-2. Find the running **GPT-OSS-20B** deployment, open its three-dot action menu, and select **Connect**.
-3. Copy the **Internal URL**. It looks like `http://aim-llm-<model-name>-<id>.<namespace>.svc.cluster.local`.
-4. Copy the **Model name or model ID** shown in the connection dialog. Use the exact value returned by the deployment; do not guess it from the display name.
+1. Click **Models** and open the **AIM Catalog** or **Deployed Models** tab. You can also locate the deployment under **Workloads**.
+2. Find the running **GPT-OSS-20B** deployment.
+3. Open its three-dot action menu and select **Connect**. This opens the connection dialog.
+4. Copy the **Internal URL**. It looks like `http://aim-llm-<model-name>-<id>.<namespace>.svc.cluster.local`. Use the internal URL because the VSCode workspace runs inside the same platform.
+5. Copy the exact **Model name or model ID** shown in the dialog. Do not guess it from the display name.
+6. In the connection dialog's sample-code box, select the **Python** tab and click the **Copy** icon in the upper-right corner. Keep this copied code available; you will paste it into a Python file in Step 2B.
 
-> **Reference:** AMD's [How to Deploy a Model and Run Inference](https://enterprise-ai.docs.amd.com/en/latest/workbench/inference/how-to-deploy-and-inference.html) guide explains the **Connect** dialog, the difference between internal and external URLs, and testing an endpoint from a Workbench workspace.
+> **Internal versus external URL:** The **Internal URL** is for applications and workspaces running inside this AMD Enterprise AI platform. The **External URL** is for clients outside the platform and may require authentication or other routing information. Use the **Internal URL** for this workshop.
 
-### Open VSCode and Test the Endpoint
-
-Go to **Workspaces** in the left sidebar. Open your running VSCode workspace. If you do not have one yet, deploy the VSCode workspace described in Step 2B, wait until its status is **Running**, and then click **Open**.
-
-In VSCode, select **Terminal -> New Terminal** (or press `` Ctrl+` ``). Set the two values copied from the connection dialog:
-
-```bash
-export BASE_URL="<your-gpt-oss-internal-url>"
-export MODEL="<your-gpt-oss-model-id>"
-
-# Remove a trailing slash if one was copied.
-export BASE_URL="${BASE_URL%/}"
-```
-
-First, confirm that the endpoint is reachable and that it advertises the expected model:
-
-```bash
-curl --fail-with-body --silent --show-error \
-  "${BASE_URL}/v1/models" | python -m json.tool
-```
-
-Check that the JSON response contains your model ID in the `data` list. Then send a simple chat-completion request:
-
-```bash
-curl --fail-with-body --silent --show-error \
-  -X POST "${BASE_URL}/v1/chat/completions" \
-  -H "Content-Type: application/json" \
-  -d "$(printf '{\"model\":\"%s\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello, world!\"}],\"max_tokens\":64}' "$MODEL")" \
-  | python -m json.tool
-```
-
-> **Expected result:** The command returns HTTP success and a JSON object containing `choices`. The model's reply appears under `choices[0].message.content`. The exact wording will vary, but it should respond to **Hello, world!**.
-
-If `curl` reports that the host cannot be resolved, confirm that you used the **Internal URL** and that the terminal is inside the Workbench VSCode workspace, not on your laptop. If the server reports that the model does not exist, run `/v1/models` again and copy the exact `id` value into `MODEL`.
+> **Reference:** Follow AMD's [Find model endpoints](https://enterprise-ai.docs.amd.com/en/latest/workbench/inference/how-to-deploy-and-inference.html#find-model-endpoints) instructions for the **Connect** dialog, URL selection, Python tab, and copy button.
 
 ---
 
@@ -283,49 +250,84 @@ Once **Running**, click **Open** to launch VSCode in your browser.
 
 > **What makes this different from a local VSCode?** The workspace runs inside the same Kubernetes cluster as your models. You can reach model services directly by their internal cluster hostname — no port-forwarding or VPN required. Your work is also persistent: files saved in the workspace home directory survive workspace restarts.
 
----
+### Prepare Python and Test the Endpoint with curl
 
-## Step 2C: Run the Benchmark
-
-In VSCode, open a terminal: **Terminal → New Terminal** (or `` Ctrl+` ``), then prepare the benchmarking tool:
+In VSCode, select **Terminal → New Terminal** (or press `` Ctrl+` ``). Create a Python virtual environment and install the package used by the Python sample:
 
 ```bash
 python --version
 python -m venv venv
 source venv/bin/activate
 python -m pip install --upgrade pip
-pip install vllm requests
+python -m pip install requests
 ```
 
-> **Expected result:** The virtual environment activates and both packages install without errors. If `python -m venv` reports that `venv` or `ensurepip` is unavailable, stop and ask the facilitator to use a workspace image with Python virtual-environment support. Do not install operating-system packages or use `sudo` inside the managed workspace unless the facilitator explicitly authorizes it.
+> **Expected result:** The virtual environment activates and `requests` installs without errors. If `python -m venv` reports that `venv` or `ensurepip` is unavailable, stop and ask the facilitator to use a workspace image with Python virtual-environment support. Do not install operating-system packages or use `sudo` inside the managed workspace unless the facilitator explicitly authorizes it.
 
-Set the exact GPT-OSS values copied in Step 2A, then use `requests` to confirm that the endpoint is reachable and that it reports the expected model ID:
+> **Python interpreter check:** Keep the virtual environment active and run Python with `python`, not `/bin/python`. Confirm the selected interpreter with `command -v python`; it should point to the `venv/bin/python` created above. An explicit `/bin/python` bypasses the virtual environment and will not see the `requests` package installed there.
+
+Set the endpoint and model values copied in Step 2A:
 
 ```bash
 export BASE_URL="<your-gpt-oss-internal-url>"
 export MODEL="<your-gpt-oss-model-id>"
 
-python - <<'PY'
-import os
-import requests
-
-base_url = os.environ["BASE_URL"].rstrip("/")
-expected_model = os.environ["MODEL"]
-response = requests.get(f"{base_url}/v1/models", timeout=30)
-response.raise_for_status()
-model_ids = [item.get("id") for item in response.json().get("data", [])]
-print("Endpoint check: OK")
-print("Available model IDs:", model_ids)
-if expected_model not in model_ids:
-    raise SystemExit(
-        f"MODEL={expected_model!r} was not returned by /v1/models. "
-        "Copy the exact served model ID and try again."
-    )
-print("Model ID check: OK")
-PY
+# Remove a trailing slash if one was copied.
+export BASE_URL="${BASE_URL%/}"
 ```
 
-Expected output includes `Endpoint check: OK` and `Model ID check: OK`. Resolve any connection or model-ID error before running the benchmark.
+Confirm that the endpoint is reachable and that it advertises the expected model:
+
+```bash
+curl --fail-with-body --silent --show-error \
+  "${BASE_URL}/v1/models" | python -m json.tool
+```
+
+Check that the JSON response contains your model ID in the `data` list. Then send a simple chat-completion request:
+
+```bash
+curl --fail-with-body --silent --show-error \
+  -X POST "${BASE_URL}/v1/chat/completions" \
+  -H "Content-Type: application/json" \
+  -d "$(printf '{\"model\":\"%s\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello, world!\"}],\"max_tokens\":64}' "$MODEL")" \
+  | python -m json.tool
+```
+
+> **Expected result:** The command returns HTTP success and a JSON object containing `choices`. The model's reply appears under `choices[0].message.content`. The exact wording will vary, but it should respond to **Hello, world!**.
+
+### Create and Run a Python File
+
+Save the test as `/workload/test.py` so it can be run with the Python environment included in the VSCode workspace:
+
+1. Click the **Explorer** icon in the VSCode activity bar on the left, or press `Ctrl+Shift+E`.
+2. Select the `/workload` folder in the Explorer. Click the **New File** icon next to the folder name.
+3. Enter `test.py` and press `Enter`. The complete file path should be `/workload/test.py`.
+4. Paste the Python sample that you copied from the model's **Connect** dialog in Step 2A.
+5. Confirm that the sample uses the copied **Internal URL** and exact model ID. Change the user-message `content` to `Hello, world!`.
+6. Save the file with `Ctrl+S`.
+7. Return to the VSCode terminal. Install `requests` into the workspace's built-in Python environment, then run the file with that same interpreter:
+
+```bash
+/opt/venv/bin/python -m pip install requests
+/opt/venv/bin/python /workload/test.py
+```
+
+Using the same `/opt/venv/bin/python` path for both commands ensures that `test.py` can import the installed `requests` package. The response should contain a `content` field with the model's reply. If the copied sample does not use the environment variables above, replace its endpoint URL and model value directly with the values copied in Step 2A.
+
+If `curl` or Python reports that the host cannot be resolved, confirm that you used the **Internal URL** and that you are running inside the Workbench VSCode workspace, not on your laptop. If the server reports that the model does not exist, check `/v1/models` and use the exact returned `id` value.
+
+---
+
+## Step 2C: Run the Benchmark
+
+Keep using the terminal and virtual environment from Step 2B. If you opened a new terminal, reactivate the environment and set `BASE_URL` and `MODEL` again. Then install the benchmarking tool:
+
+```bash
+source venv/bin/activate
+python -m pip install vllm
+```
+
+> **Expected result:** `vllm` installs without errors. Do not continue until the endpoint test in Step 2B succeeds.
 
 Create `bench_serve.sh` with the benchmark procedure used in the Workbench guide. It reuses the exported `BASE_URL` and `MODEL` values:
 
@@ -717,7 +719,7 @@ echo "All Ubuntu/WSL workshop tools installed successfully."
 
 ### Path B — macOS: Run One Installation Script
 
-Run this entire block in **Terminal** on an Intel or Apple Silicon Mac. It installs Homebrew when necessary, installs the workshop tools, installs Krew using its supported installer, adds the Krew directory to `PATH`, and verifies everything.
+Run this entire block in **Terminal on your physical Mac**, not in the browser-based Workbench VSCode terminal. It supports Intel and Apple Silicon Macs, installs Homebrew when necessary, installs the workshop tools, installs Krew using its supported installer, adds Homebrew and Krew to the shell `PATH`, and verifies everything.
 
 ```bash
 set -euo pipefail
@@ -732,16 +734,27 @@ if ! command -v brew >/dev/null 2>&1; then
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 fi
 
-if [[ -x /opt/homebrew/bin/brew ]]; then
-  eval "$(/opt/homebrew/bin/brew shellenv)"
-elif [[ -x /usr/local/bin/brew ]]; then
-  eval "$(/usr/local/bin/brew shellenv)"
+BREW_BIN="$(command -v brew 2>/dev/null || true)"
+if [[ -z "$BREW_BIN" ]]; then
+  if [[ -x /opt/homebrew/bin/brew ]]; then
+    BREW_BIN="/opt/homebrew/bin/brew"
+  elif [[ -x /usr/local/bin/brew ]]; then
+    BREW_BIN="/usr/local/bin/brew"
+  else
+    echo "Homebrew was installed but could not be found. Open a new Terminal and run this script again."
+    exit 1
+  fi
 fi
+
+eval "$("$BREW_BIN" shellenv)"
+BREW_INIT="eval \"\$(${BREW_BIN} shellenv)\""
+touch "$HOME/.zprofile"
+grep -qxF "$BREW_INIT" "$HOME/.zprofile" 2>/dev/null \
+  || printf '%s\n' "$BREW_INIT" >> "$HOME/.zprofile"
 
 brew update
 brew install curl git python kubectl
 brew install derailed/k9s/k9s
-brew install Azure/kubelogin/kubelogin
 
 HELM_INSTALLER="$(mktemp)"
 curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 \
@@ -775,11 +788,13 @@ fi
 kubectl version --client
 helm version
 k9s version
-kubelogin --version
+python3 --version
 kubectl krew version
 kubectl oidc-login --help >/dev/null
 echo "All macOS workshop tools installed successfully."
 ```
+
+This workshop uses the generic OIDC plugin exposed as `kubectl oidc-login`. Krew installs that plugin directly, so do not install the separate Azure `kubelogin` formula for this workshop.
 
 When your selected script prints its success message, continue to Step 1B.
 
