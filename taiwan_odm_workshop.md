@@ -938,12 +938,14 @@ users:
       - get-token
       - --oidc-issuer-url=https://kc.amd-workshop.silogen.ai/realms/airm
       - --oidc-client-id=k8s
-      - --oidc-client-secret=<provided-oidc-client-secret>
+      - --oidc-client-secret=a9e8c69283aa3f85dbbb19e1f703f328
       - --insecure-skip-tls-verify
       command: kubectl
       env: null
       interactiveMode: IfAvailable
       provideClusterInfo: false
+
+
 EOF
 ```
 
