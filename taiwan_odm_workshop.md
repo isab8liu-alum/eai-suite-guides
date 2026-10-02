@@ -435,7 +435,7 @@ NUM_PROMPTS=20
 CONC=10
 INPUT_LEN=1024
 OUTPUT_LEN=1024
-ENDPOINT="/v1/chat/completions"
+ENDPOINT=""
 
 : "${BASE_URL:?Set and export BASE_URL before running this script}"
 : "${MODEL:?Set and export MODEL before running this script}"
