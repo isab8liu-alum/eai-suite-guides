@@ -1241,6 +1241,7 @@ Deploy the Blueprint with the default AIM included by the chart:
 ```bash
 helm template $name oci://registry-1.docker.io/amdenterpriseai/aimsb-mri-doc \
   --set http_route.enabled=true \
+  --set llm.env_vars.AIM_ACCELERATOR_MODEL="MI350X" \
   | kubectl apply -f - -n $namespace
 ```
 
