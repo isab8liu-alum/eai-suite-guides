@@ -1272,17 +1272,12 @@ In the `Status` section, look for `Accepted=True` and `ResolvedRefs=True`. If ei
 Once the deployment and route are ready, print the application URL:
 
 ```bash
-blueprint_url="https://aimsb-mri-doc-$name$(kubectl get gtw -A -o jsonpath='{.items[*].spec.listeners[?(@.name=="https")].hostname}' | tr -d \*)/"
-echo "$blueprint_url"
+echo "https://aimsb-mri-doc-$name$(kubectl get gtw -A -o jsonpath='{.items[*].spec.listeners[?(@.name=="https")].hostname}' | tr -d \*)/"
 ```
 
 This command follows the Blueprint deployment guide by querying the cluster for the `https` listener hostname instead of hard-coding a domain. The Gateway terminates TLS and routes the resulting hostname to the Blueprint service. No local port-forward is required.
 
-Verify HTTPS from the terminal:
 
-```bash
-curl --fail --show-error --location "$blueprint_url"
-```
 
 Open the printed URL in your browser. You should see the MRI Documentation interface. Try uploading a sample MRI report or asking it a question about an imaging study.
 
