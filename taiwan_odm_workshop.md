@@ -379,6 +379,8 @@ source /workload/venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install requests
 command -v python
+
+
 ```
 
 > **Expected result:** The virtual environment activates and `requests` installs without errors. If `python -m venv` reports that `venv` or `ensurepip` is unavailable, stop and ask the facilitator to use a workspace image with Python virtual-environment support. Do not install operating-system packages or use `sudo` inside the managed workspace unless the facilitator explicitly authorizes it.
@@ -398,6 +400,8 @@ Save the test as `/workload/test.py` so it can be run with the Python environmen
 7. Return to the VSCode terminal and run the file with the virtual environment created above:
 
 ```bash
+/opt/venv/bin/python -m pip install requests
+/opt/venv/bin/python /workload/test.py
 python /workload/test.py
 ```
 
