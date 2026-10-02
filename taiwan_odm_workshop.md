@@ -1208,7 +1208,7 @@ aimservice="minimal-aim-deployment"
 
 Building an AI application from scratch — even with a model already running — still requires writing a UI, a backend, prompt engineering, API wiring, and deployment code. For enterprise teams evaluating use cases, this delay kills momentum.
 
-**Solution Blueprints** eliminate that gap. Each Blueprint is a complete, production-ready AI application distributed as a single deployable package. In this section you will deploy the **MRI Documentation Blueprint** — a full application for AI-assisted medical imaging analysis and report generation — connected directly to the AIM you deployed in Part 1.
+**Solution Blueprints** eliminate that gap. Each Blueprint is a complete, production-ready AI application distributed as a single deployable package. In this section you will deploy the **MRI Documentation Blueprint** — a full application for AI-assisted medical imaging analysis and report generation — using the default AIM included by the chart.
 
 ---
 
@@ -1231,11 +1231,10 @@ chart="aimsb-mri-doc"      # The MRI Documentation Blueprint
 
 ### Deploy
 
-Deploy the Blueprint pointed at the AIM you deployed in Part 1, by listing it as the existing AIMS service:
+Deploy the Blueprint with the default AIM included by the chart:
 
 ```bash
-helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
-  --set llm.existingService=$aimservice \
+helm template $name oci://registry-1.docker.io/amdenterpriseai/aimsb-mri-doc \
   --set http_route.enabled=true \
   | kubectl apply -f - -n $namespace
 ```
@@ -1283,7 +1282,7 @@ Open the printed URL in your browser. You should see the MRI Documentation inter
 
 > **What does this do?**
 > - `helm template` downloads the Blueprint chart from AMD's registry and renders it into Kubernetes configuration files
-> - `--set llm.existingService=$aimservice` points the Blueprint at the Llama 3.2 1B AIM service you deployed in Part 1 — no second model pod is created
+> - The chart deploys its default AIM because no existing AIM service is specified
 > - `--set http_route.enabled=true` creates the `HTTPRoute` using the chart's Gateway configuration
 > - `kubectl apply` sends the rendered configuration to the cluster
 
@@ -1298,21 +1297,21 @@ Open the printed URL in your browser. You should see the MRI Documentation inter
 
 Blueprints are open-source — the source code is available on GitHub and every component can be modified. In this section you will tear down the current Blueprint deployment and redeploy it with a different configuration to see how easy customization is.
 
-**1. Tear Down and Redeploy with a Default AIM**
+**1. Tear Down and Redeploy with the Shared AIM from Part 1**
 
 Delete the existing Blueprint and its HTTPS route:
 
 ```bash
 helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
-  --set llm.existingService=$aimservice \
   --set http_route.enabled=true \
   | kubectl delete -f - -n $namespace
 ```
 
-Wait for pods to terminate (watch in k9s), then redeploy the Blueprint — this time pointing it to the default AIMs in the helmchart (GPT-OSS-20B):
+Wait for pods to terminate (watch in k9s), then redeploy the Blueprint — this time pointing it to the shared AIM service from Part 1:
 
 ```bash
 helm template $name oci://registry-1.docker.io/amdenterpriseai/$chart \
+  --set llm.existingService=$aimservice \
   --set http_route.enabled=true \
   | kubectl apply -f - -n $namespace
 ```
@@ -1321,10 +1320,9 @@ Wait for the pods to restart, then confirm the route is accepted:
 
 ```bash
 kubectl get httproute aimsb-mri-doc-$name -n $namespace
-curl --fail --show-error --location "$blueprint_url"
 ```
 
-Open `$blueprint_url` in your browser. The Blueprint is now powered by the AIM included by the chart instead of the shared AIM from Part 1.
+Run the URL command from Step 2A again and open the printed URL in your browser. The Blueprint is now powered by the shared AIM from Part 1 instead of the AIM included by the chart.
 
 > **Why does this matter?** Running a separate model per application wastes GPU resources and creates management complexity. By pointing Blueprints at a shared AIM, your team gets one model to monitor, update, and scale — and every application benefits automatically. This is also how you would swap in a different model without rebuilding the Blueprint.
 
