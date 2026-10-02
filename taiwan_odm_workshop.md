@@ -332,7 +332,7 @@ In AMD AI Workbench:
 
 ![Connect to model dialog](aai_workshop_images/wb-connect-to-model.png)
 
-4. Copy the **Internal URL**. It looks like `http://wb-aim-<id>-<id>-predictor.<namespace>.svc.cluster.local`. Use the internal URL because the VSCode workspace runs inside the same platform.
+4. Copy the **Internal URL**. It looks like `http://wb-aim-<id>-<id>-predictor.<namespace>.svc.cluster.local`. Use the internal URL because the VSCode workspace runs inside the same platform. REMEMBER TO TOGGLE THE BUTTON TO BLUE! Otherwise you will get a json decode error later
 5. Copy the exact **model ID** shown in the code snippet (for this workshop, `openai/gpt-oss-20b`). Do not guess it from the display name.
 6. In the dialog's **CODE SNIPPET** box, toggle **Use internal URL** on, select the **Python** tab, and click the **Copy** icon in the upper-right corner. Keep this copied code available; you will paste it into a Python file in Step 2B.
 
@@ -382,14 +382,14 @@ command -v python
 
 
 ```
-
+**Paste the above commands in shell**
 > **Expected result:** The virtual environment activates and `requests` installs without errors. If `python -m venv` reports that `venv` or `ensurepip` is unavailable, stop and ask the facilitator to use a workspace image with Python virtual-environment support. Do not install operating-system packages or use `sudo` inside the managed workspace unless the facilitator explicitly authorizes it.
 
 > **Python interpreter check:** Keep the virtual environment active and run Python with `python`, not `/bin/python`. The final command should return `/workload/venv/bin/python`. An explicit `/bin/python` bypasses the virtual environment and will not see the `requests` package installed there.
 
 ### Create and Run a Python File
 
-Save the test as `/workload/test.py` so it can be run with the Python environment included in the VSCode workspace:
+Save the filename as `test.py` so it can be run with the Python environment included in the VSCode workspace:
 
 1. Click the **Explorer** icon in the VSCode activity bar on the left, or press `Ctrl+Shift+E`.
 2. Select the `/workload` folder in the Explorer. Click the **New File** icon next to the folder name.
@@ -402,12 +402,11 @@ Save the test as `/workload/test.py` so it can be run with the Python environmen
 ```bash
 /opt/venv/bin/python -m pip install requests
 /opt/venv/bin/python /workload/test.py
-python /workload/test.py
 ```
 
 The response should contain a `content` field with the model's reply. The exact wording will vary, but it should respond to **Hello, world!**.
 
-If Python reports that the host cannot be resolved, confirm that you used the **Internal URL** and that you are running inside the Workbench VSCode workspace, not on your laptop. If the server reports that the model does not exist, return to the **Connect to model** dialog and copy the exact model ID from its code snippet.
+If Python reports that the host cannot be resolved or you get a error, confirm that you used the **Internal URL** and that you are running inside the Workbench VSCode workspace, not on your laptop. If the server reports that the model does not exist, return to the **Connect to model** dialog and copy the exact model ID from its code snippet.
 
 ---
 
@@ -419,7 +418,7 @@ Keep using the terminal and virtual environment from Step 2B. Set the endpoint a
 cd /workload
 source /workload/venv/bin/activate
 
-export BASE_URL="<your-gpt-oss-internal-url>"
+export BASE_URL="<your-gpt-oss-internal-url>" #paste in your INTERNAL url from workbench, such as http://wb-aim-9f405312-efad46f8-predictor.demo.svc.cluster.local/v1/chat/completions
 export MODEL="openai/gpt-oss-20b"
 
 python -m pip install vllm
@@ -429,6 +428,7 @@ python -m pip install vllm
 
 Create `/workload/bench_serve.sh` with the benchmark procedure used in the Workbench guide. It uses the exported `BASE_URL` and `MODEL` values:
 
+Paste this script in your terminal **shell**. It will start the benchmarking process. 
 ```bash
 cat > bench_serve.sh <<'EOF'
 NUM_PROMPTS=20
@@ -457,6 +457,7 @@ EOF
 chmod +x bench_serve.sh
 ./bench_serve.sh
 ```
+If you would like to run this script again, you can run in shell ``./bench_serve.sh``.
 
 > **What do these parameters mean?**
 > - `NUM_PROMPTS` controls the total requests sent
