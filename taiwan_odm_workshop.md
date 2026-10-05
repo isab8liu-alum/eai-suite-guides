@@ -1,5 +1,5 @@
 # Taiwan ODM Workshop
-### AMD Enterprise AI Software Stack, AIMs, and Blueprints — Hands-On Labs (90 Minutes)
+### AMD Enterprise AI Software Stack, AIMs, and Blueprints — Hands-On Labs (180 Minutes)
 
 **Audience:** Enterprise IT administrators, platform engineers, and team leads evaluating the AMD AI platform<br>
 **Prerequisites:** A browser, workshop credentials, and either Windows 10/11, native Ubuntu/Debian Linux, or macOS<br>
