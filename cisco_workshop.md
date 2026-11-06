@@ -312,7 +312,7 @@ Ask a question and observe:
 
 Fine-tuning adapts a base AIM to your own data — domain vocabulary, house tone of voice, a specific output format — without training a model from scratch. In Workbench it is a two-part flow: upload a **dataset**, then create a **fine-tuned model** that references it.
 
-> **Current UI:** On Workbench v2.1.0, use the guided fine-tuning wizard and LoRA adapter flow. The screenshots in this inherited lab may show an older UI. See the [current training and fine-tuning documentation](https://enterprise-ai.docs.amd.com/en/latest/workbench/fine-tuning.html).
+> **Current UI:** On Workbench v2.1.0, use the guided fine-tuning wizard and LoRA adapter flow. The screenshots in this inherited lab may show an older UI. See the [current training and fine-tuning documentation](https://enterprise-ai.docs.amd.com/en/latest/workbench/training/overview.html).
 
 ### Upload a Training Dataset
 
