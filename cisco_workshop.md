@@ -1324,7 +1324,7 @@ In the `Status` section, look for `Accepted=True` and `ResolvedRefs=True`. If ei
 Once the deployment and route are ready, print the application URL:
 
 ```bash
-echo "https://aimsb-mri-doc-$name$(kubectl get gtw -A -o jsonpath='{.items[*].spec.listeners[?(@.name=="https")].hostname}' | tr -d \*)/"
+echo "https://aimsb-mri-doc-${name}.amd-workshop.silogen.ai"
 ```
 
 This command follows the Blueprint deployment guide by querying the cluster for the `https` listener hostname instead of hard-coding a domain. The Gateway terminates TLS and routes the resulting hostname to the Blueprint service. No local port-forward is required.
