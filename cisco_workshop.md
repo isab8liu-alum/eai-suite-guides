@@ -286,7 +286,9 @@ The same menu provides **Chat with model**, **Connect to model**, and **Undeploy
 
 ### Chat with Your Model
 
-Open the chat interface in either of two ways:
+You may notice the some of the metrics are unpopulated, such as `Time to first token`. Open the chat interface and observe how the live metrics are updated in real time. You can open the chat in either of two ways:
+
+> **Tip:** If you hold the 'ctrl' button and then click any link, it will open in a new browser tab, allowing you to keep the monitoring open for quick reference.
 
 - From **Models → Deployed Models**, click the **three-dot menu (⋮)** on the model row and select **Chat with model**, or
 - Click **Chat** in the left sidebar and pick your deployment from the **Select model** dropdown at the top right.
