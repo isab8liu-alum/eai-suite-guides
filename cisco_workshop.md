@@ -428,7 +428,6 @@ Once **Running**, click **Open** to launch VSCode in your browser.
 In VSCode, select **Terminal → New Terminal** (or press `` Ctrl+` ``). Create one virtual environment under `/workload` and install the package used by the Python sample:
 
 ```bash
-cd /workload
 python --version
 python -m venv venv
 source /workload/venv/bin/activate
