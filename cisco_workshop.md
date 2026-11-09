@@ -1253,8 +1253,8 @@ aimservice="minimal-aim-service"
 | Scenario | Recommended approach |
 |---|---|
 | Automated deployment from CI/CD | **kubectl / AIM Engine CLI** |
-| GitOps — model config stored in git | **kubectl apply** with YAML manifests |
-| Batch deployment of many models | **kubectl** with a loop or Helm |
+| GitOps — model config stored in git | **automated reconciliation** e.g. Argo CD or Flux |
+| Batch deployment of many models | **kubectl apply** an entire folder, **kubectl kustomize**, or **Helm** |
 
 ---
 
