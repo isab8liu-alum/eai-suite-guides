@@ -697,9 +697,9 @@ Once saved, the token value is never shown again in the UI. The secret appears i
 
 ![Secret successfully created](aai_workshop_images/08-secret-assigned.png)
 
-For teams that need access to shared dataset or model artifact storage, admins can also assign object storage credentials under **Add** → **MinIO / S3 Compatible**. If the credentials already exist at the cluster level, the admin assigns them to the project from a list rather than re-entering the values:
+For teams that need access to shared dataset or model artifact storage, admins can also assign object storage credentials under **Create new secret** → **Use case (S3)**. If the credentials already exist at the cluster level, the admin assigns them to the project from a list rather than re-entering the values:
 
-![Assign MinIO secret to project](aai_workshop_images/07-assign-secret-minio.png)
+![Assign S3-compatible secret to project](aai_workshop_images/07-assign-secret-minio.png)
 
 The resulting secret is mounted as environment variables into authorized workspaces and model deployments — workloads access the bucket automatically without users handling raw credentials.
 
