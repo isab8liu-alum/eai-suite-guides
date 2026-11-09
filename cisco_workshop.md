@@ -1064,7 +1064,7 @@ TODO facilitator add hf-token to all project namespaces as kubernetes secrets --
 Create the deployment manifest:
 
 ```bash
-cat <<'EOF' > aim-test-deployment.yaml
+cat <<'EOF' > minimal-aim-deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -1153,13 +1153,13 @@ EOF
 Create the service manifest:
 
 ```bash
-cat <<'EOF' > aim-test-service.yaml
+cat <<'EOF' > minimal-aim-service.yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: minimal-aim-deployment
+  name: minimal-aim-service
   labels:
-    app: minimal-aim-deployment
+    app: minimal-aim-service
 spec:
   type: ClusterIP
   ports:
@@ -1174,7 +1174,7 @@ EOF
 Apply both manifests to your namespace:
 
 ```bash
-kubectl apply -f aim-test-deployment.yaml -f aim-test-service.yaml -n $namespace
+kubectl apply -f minimal-aim-deployment.yaml -f minimal-aim-service.yaml -n $namespace
 ```
 
 > **Why Llama 3.2 1B?** This AIM image is packaged and optimized for AMD Instinct GPUs. It can take several minutes to download model weights, compile kernels, and pass its startup probe on first launch.
@@ -1211,7 +1211,7 @@ Once the pod is **Running**, confirm the model is serving by sending a test requ
 Port-forward the service:
 
 ```bash
-kubectl port-forward service/minimal-aim-deployment 8000:80 -n $namespace
+kubectl port-forward service/minimal-aim-service 8000:80 -n $namespace
 ```
 
 In a second terminal, verify the model endpoint:
@@ -1244,7 +1244,7 @@ kubectl get svc minimal-aim-deployment -n $namespace
 Set the service name as a variable:
 
 ```bash
-aimservice="minimal-aim-deployment"
+aimservice="minimal-aim-service"
 ```
 
 ---
