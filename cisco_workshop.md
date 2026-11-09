@@ -968,7 +968,7 @@ Create the kubeconfig file with the following content:
 
 ```bash
 mkdir -p ~/.kube
-cat > ~/.kube/kube_config_aai.yaml << 'EOF'
+cat > ~/.kube/config << 'EOF'
 apiVersion: v1
 clusters:
 - cluster:
@@ -1002,12 +1002,6 @@ users:
 
 
 EOF
-```
-
-Activate the kubeconfig:
-
-```bash
-export KUBECONFIG=~/.kube/kube_config_aai.yaml
 ```
 
 The OIDC login will trigger your browser.
@@ -1070,7 +1064,7 @@ TODO facilitator add hf-token to all project namespaces as kubernetes secrets --
 Create the deployment manifest:
 
 ```bash
-cat <<'EOF' > aai-test-deployment.yaml
+cat <<'EOF' > aim-test-deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -1159,7 +1153,7 @@ EOF
 Create the service manifest:
 
 ```bash
-cat <<'EOF' > aai-test-service.yaml
+cat <<'EOF' > aim-test-service.yaml
 apiVersion: v1
 kind: Service
 metadata:
@@ -1180,7 +1174,7 @@ EOF
 Apply both manifests to your namespace:
 
 ```bash
-kubectl apply -f aai-test-deployment.yaml -f aai-test-service.yaml -n $namespace
+kubectl apply -f aim-test-deployment.yaml -f aim-test-service.yaml -n $namespace
 ```
 
 > **Why Llama 3.2 1B?** This AIM image is packaged and optimized for AMD Instinct GPUs. It can take several minutes to download model weights, compile kernels, and pass its startup probe on first launch.
@@ -1206,7 +1200,7 @@ If the pod reports `CreateContainerConfigError`, check the Secret key:
 kubectl describe pod -n $namespace -l app=minimal-aim-deployment
 ```
 
-If the event says `couldn't find key ... in Secret`, update `secretKeyRef.key` in `aai-test-deployment.yaml` to match the key shown by the Secret verification command, then re-apply the deployment.
+If the event says `couldn't find key ... in Secret`, update `secretKeyRef.key` in `aim-test-deployment.yaml` to match the key shown by the Secret verification command, then re-apply the deployment.
 
 ---
 
@@ -1555,7 +1549,7 @@ If your Blueprint is still configured to use `minimal-aim-deployment`, undeploy 
 Stop any active port-forward with `Ctrl+C`, then delete the AIM deployment and service:
 
 ```bash
-kubectl delete -f aai-test-deployment.yaml -f aai-test-service.yaml -n $namespace
+kubectl delete -f aim-test-deployment.yaml -f aim-test-service.yaml -n $namespace
 ```
 
 If you no longer have the YAML files, delete the resources by name:
