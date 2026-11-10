@@ -286,7 +286,9 @@ The same menu provides **Chat with model**, **Connect to model**, and **Undeploy
 
 ### Chat with Your Model
 
-Open the chat interface in either of two ways:
+You may notice the some of the metrics are unpopulated, such as `Time to first token`. Open the chat interface and observe how the live metrics are updated in real time. You can open the chat in either of two ways:
+
+> **Tip:** If you hold the 'ctrl' button and then click any link, it will open in a new browser tab, allowing you to keep the monitoring open for quick reference.
 
 - From **Models → Deployed Models**, click the **three-dot menu (⋮)** on the model row and select **Chat with model**, or
 - Click **Chat** in the left sidebar and pick your deployment from the **Select model** dropdown at the top right.
@@ -426,7 +428,6 @@ Once **Running**, click **Open** to launch VSCode in your browser.
 In VSCode, select **Terminal → New Terminal** (or press `` Ctrl+` ``). Create one virtual environment under `/workload` and install the package used by the Python sample:
 
 ```bash
-cd /workload
 python --version
 python -m venv venv
 source /workload/venv/bin/activate
@@ -695,9 +696,9 @@ Once saved, the token value is never shown again in the UI. The secret appears i
 
 ![Secret successfully created](aai_workshop_images/08-secret-assigned.png)
 
-For teams that need access to shared dataset or model artifact storage, admins can also assign object storage credentials under **Add** → **MinIO / S3 Compatible**. If the credentials already exist at the cluster level, the admin assigns them to the project from a list rather than re-entering the values:
+For teams that need access to shared dataset or model artifact storage, admins can also assign object storage credentials under **Create new secret** → **Use case (S3)**. If the credentials already exist at the cluster level, the admin assigns them to the project from a list rather than re-entering the values:
 
-![Assign MinIO secret to project](aai_workshop_images/07-assign-secret-minio.png)
+![Assign S3-compatible secret to project](aai_workshop_images/07-assign-secret-minio.png)
 
 The resulting secret is mounted as environment variables into authorized workspaces and model deployments — workloads access the bucket automatically without users handling raw credentials.
 
@@ -967,7 +968,7 @@ Create the kubeconfig file with the following content:
 
 ```bash
 mkdir -p ~/.kube
-cat > ~/.kube/kube_config_aai.yaml << 'EOF'
+cat > ~/.kube/config << 'EOF'
 apiVersion: v1
 clusters:
 - cluster:
@@ -992,7 +993,7 @@ users:
       - get-token
       - --oidc-issuer-url=https://kc.amd-workshop.silogen.ai/realms/airm
       - --oidc-client-id=k8s
-      - --oidc-client-secret=a9e8c69283aa3f85dbbb19e1f703f328
+      - --oidc-client-secret=efe174bff57b6a0ec6f62477555d0748
       - --insecure-skip-tls-verify
       command: kubectl
       env: null
@@ -1001,12 +1002,6 @@ users:
 
 
 EOF
-```
-
-Activate the kubeconfig:
-
-```bash
-export KUBECONFIG=~/.kube/kube_config_aai.yaml
 ```
 
 The OIDC login will trigger your browser.
@@ -1069,7 +1064,7 @@ TODO facilitator add hf-token to all project namespaces as kubernetes secrets --
 Create the deployment manifest:
 
 ```bash
-cat <<'EOF' > aai-test-deployment.yaml
+cat <<'EOF' > minimal-aim-deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -1158,13 +1153,13 @@ EOF
 Create the service manifest:
 
 ```bash
-cat <<'EOF' > aai-test-service.yaml
+cat <<'EOF' > minimal-aim-service.yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: minimal-aim-deployment
+  name: minimal-aim-service
   labels:
-    app: minimal-aim-deployment
+    app: minimal-aim-service
 spec:
   type: ClusterIP
   ports:
@@ -1179,7 +1174,7 @@ EOF
 Apply both manifests to your namespace:
 
 ```bash
-kubectl apply -f aai-test-deployment.yaml -f aai-test-service.yaml -n $namespace
+kubectl apply -f minimal-aim-deployment.yaml -f minimal-aim-service.yaml -n $namespace
 ```
 
 > **Why Llama 3.2 1B?** This AIM image is packaged and optimized for AMD Instinct GPUs. It can take several minutes to download model weights, compile kernels, and pass its startup probe on first launch.
@@ -1205,7 +1200,7 @@ If the pod reports `CreateContainerConfigError`, check the Secret key:
 kubectl describe pod -n $namespace -l app=minimal-aim-deployment
 ```
 
-If the event says `couldn't find key ... in Secret`, update `secretKeyRef.key` in `aai-test-deployment.yaml` to match the key shown by the Secret verification command, then re-apply the deployment.
+If the event says `couldn't find key ... in Secret`, update `secretKeyRef.key` in `aim-test-deployment.yaml` to match the key shown by the Secret verification command, then re-apply the deployment.
 
 ---
 
@@ -1216,7 +1211,7 @@ Once the pod is **Running**, confirm the model is serving by sending a test requ
 Port-forward the service:
 
 ```bash
-kubectl port-forward service/minimal-aim-deployment 8000:80 -n $namespace
+kubectl port-forward service/minimal-aim-service 8000:80 -n $namespace
 ```
 
 In a second terminal, verify the model endpoint:
@@ -1249,7 +1244,7 @@ kubectl get svc minimal-aim-deployment -n $namespace
 Set the service name as a variable:
 
 ```bash
-aimservice="minimal-aim-deployment"
+aimservice="minimal-aim-service"
 ```
 
 ---
@@ -1258,8 +1253,8 @@ aimservice="minimal-aim-deployment"
 | Scenario | Recommended approach |
 |---|---|
 | Automated deployment from CI/CD | **kubectl / AIM Engine CLI** |
-| GitOps — model config stored in git | **kubectl apply** with YAML manifests |
-| Batch deployment of many models | **kubectl** with a loop or Helm |
+| GitOps — model config stored in git | **automated reconciliation** e.g. Argo CD or Flux |
+| Batch deployment of many models | **kubectl apply** an entire folder, **kubectl kustomize**, or **Helm** |
 
 ---
 
@@ -1329,7 +1324,7 @@ In the `Status` section, look for `Accepted=True` and `ResolvedRefs=True`. If ei
 Once the deployment and route are ready, print the application URL:
 
 ```bash
-echo "https://aimsb-mri-doc-$name$(kubectl get gtw -A -o jsonpath='{.items[*].spec.listeners[?(@.name=="https")].hostname}' | tr -d \*)/"
+echo "https://aimsb-mri-doc-${name}.amd-workshop.silogen.ai"
 ```
 
 This command follows the Blueprint deployment guide by querying the cluster for the `https` listener hostname instead of hard-coding a domain. The Gateway terminates TLS and routes the resulting hostname to the Blueprint service. No local port-forward is required.
@@ -1554,7 +1549,7 @@ If your Blueprint is still configured to use `minimal-aim-deployment`, undeploy 
 Stop any active port-forward with `Ctrl+C`, then delete the AIM deployment and service:
 
 ```bash
-kubectl delete -f aai-test-deployment.yaml -f aai-test-service.yaml -n $namespace
+kubectl delete -f aim-test-deployment.yaml -f aim-test-service.yaml -n $namespace
 ```
 
 If you no longer have the YAML files, delete the resources by name:
