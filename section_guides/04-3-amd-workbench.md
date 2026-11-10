@@ -1,68 +1,314 @@
 # 3. AMD AI Workbench
 
-## Why Use AMD AI Workbench?
+## Overview
 
-AMD AI Workbench is the **self-service portal for AI** on the AMD Enterprise AI platform. It puts model deployment, evaluation, fine-tuning, and developer environments in the hands of data scientists and developers — without requiring them to have Kubernetes or infrastructure expertise.
+AMD AI Workbench is the project-scoped, self-service interface for discovering and deploying models, testing inference, managing datasets and secrets, fine-tuning models, creating API keys, and launching development workspaces.
 
-**Enterprise value:**
-- Teams self-serve AI models without waiting on IT infrastructure tickets
-- Unified interface for the full ML lifecycle: discover → deploy → evaluate → fine-tune → connect
-- API-compatible with OpenAI standards — existing code and tooling works without modification
-- Centrally managed API keys mean usage is auditable and controllable
-- Pre-built workspaces eliminate environment setup friction for developers and data scientists
+Open the Silogen demo Workbench at:
 
-AMD AI Workbench is accessed separately from the Resource Manager. Navigate to the URL exposed after installation:
+`https://aiwbui.silogen-demo.silogen.ai/`
 
-- For a `.nip.io` domain (default for Digital Ocean installations): `https://airmui.<master-node-ip-address>.nip.io`
-- For a registered domain: `https://airmui.<your-domain>`
+The authenticated interface was reviewed on September 1, 2026. Select the intended project before creating or changing resources. The current primary navigation contains **Dashboard**, **API Keys**, **Chat**, **Datasets**, **Models**, **Secrets**, and **Workspaces**.
 
-Log in with the same credentials used for the Resource Manager. Ensure you are working within the correct project before proceeding.
+See the [AMD AI Workbench overview](https://enterprise-ai.docs.amd.com/en/latest/workbench/overview.html) for the product-level description.
 
-<!-- SCREENSHOT: AMD AI Workbench landing page after login, showing the main navigation -->
+### Manual verification checklist
 
-------------------------------------------------------------------------
+- [ ] [Deploy an AIM](#deploy-an-aim): confirm the deployment form, resource choices, gated-model authentication, and successful deployment.
+- [ ] [Onboard a custom model](#custom-models): confirm supported model sources, fields, validation, and resulting catalog entry.
+- [ ] [Upload a dataset](#datasets): confirm JSONL validation, upload behavior, and dataset metadata.
+- [ ] [Start a fine-tuning job](#fine-tune-models): confirm available base models, training parameters, status states, and output model.
+- [ ] [Create a project secret](#project-secrets-and-hugging-face-access): confirm secret type, use case, scope, and redaction behavior.
+- [ ] [Create and manage an API key](#api-keys-and-programmatic-access): confirm one-time display, expiration and renewal controls, deployment binding, and usage limits.
+- [ ] [Deploy each workspace type](#workspace-catalog): confirm resource settings, launch behavior, persistence, and cleanup.
+- [ ] [Delete a deployed model](#deployed-models): verify the warning and dependencies using only a disposable deployment.
+- [ ] [Run the AIMService commands](#deploy-an-aim-with-aim-engine): validate the manifest and commands in a non-production namespace.
+- [ ] [Review retained screenshots](#screenshot-review): compare every retained image with the current UI; image assets were intentionally not edited.
+- [ ] [Review unchanged SLO and timing text](#intentionally-unchanged-slo-and-timing-text): validate the legacy statements before relying on them.
 
-## Deploy an AI Model (AIM) via the Workbench GUI
+---
 
-> **You are in the AMD AI Workbench interface for this section.** Confirm you have selected the correct project in the top navigation before proceeding.
+## Current Navigation and Project Context
 
-AIMs (AMD Inference Microservices) are pre-packaged, AMD-optimized AI model servers. The Workbench lets you deploy them through a graphical interface with no command-line required.
+| Area | Current purpose |
+|---|---|
+| **Dashboard** | Summarizes the selected project's workloads and recent activity. |
+| **API Keys** | Creates and manages project-scoped credentials for programmatic inference access. |
+| **Chat** | Tests deployed models in single-model **Chat** or side-by-side **Compare** mode. |
+| **Datasets** | Uploads and manages training datasets. |
+| **Models** | Provides **AIM Catalog**, **Custom Models**, **Fine-tune models**, and **Deployed Models** tabs. |
+| **Secrets** | Manages project secrets, including Hugging Face credentials. |
+| **Workspaces** | Deploys browser-based development and AI tools. |
 
-### Browse the Model Catalog
+The active project determines which datasets, secrets, API keys, deployments, and workspaces are visible. Confirm the project selector before any state-changing action.
 
-1. Click **Models** in the left navigation sidebar
-2. Browse the catalog — you will see language models, vision models, embedding models, and more
-3. Each card shows the model name, provider, parameter count, and hardware requirements
+---
 
-> **What am I looking at?** Each model is an AIM — a container image built by AMD that includes the model weights, optimized serving configuration, and all dependencies for running efficiently on AMD GPUs. AMD has profiled each model on AMD hardware, so you get the right configuration automatically.
+## Models
 
-![AI Workbench — AIM catalog](../images/04-workbench/01-models-catalog.png)
+Open **Models** from the left navigation. The current interface contains four tabs.
 
-### Deploy a Model
+### AIM Catalog
 
-1. Find the model you want to deploy
-2. Click the **three-dot menu (⋮)** in the bottom-right corner of the model card
-3. Select **Deploy**
+The **AIM Catalog** contains AMD Inference Microservices (AIMs): packaged, optimized model-serving workloads for supported AMD hardware. Use search and the available **Accelerator**, **Tag**, and **Deployment status** filters to narrow the catalog. Models that require provider authorization display a gated-model label.
 
-![Model card with Deploy option](../images/04-workbench/02-model-card-deploy-menu.png)
+The current cards provide a direct **Deploy** control. The previous instruction to open a three-dot menu is obsolete.
 
-4. In the **Deployment Settings** panel:
+![AI Workbench AIM catalog](../images/04-workbench/01-models-catalog.png)
 
-   | Setting | Options | When to Use |
-   |---------|---------|-------------|
-   | **Performance metric** | Latency | Minimize response time per request — best for interactive chat applications |
-   | **Performance metric** | Throughput | Maximize requests/second — best for batch processing or high-volume APIs |
-   | **Unoptimized deployment** | Toggle Allow | Only enable when deploying to hardware the AIM is not specifically optimized for |
+> [!WARNING]
+> **Manual verification required:** Confirm that the retained AIM Catalog screenshot matches the current card layout, filter labels, gated-model indicators, and direct Deploy controls.
 
-![Deploy AIM panel with Performance metric dropdown](../images/04-workbench/03-deploy-config-panel.png)
+### Deploy an AIM
 
-![Performance metric dropdown showing Latency and Throughput options](../images/04-workbench/04-deploy-performance-dropdown.png)
+1. Open **Models** and select **AIM Catalog**.
+2. Search or filter for the required model and confirm that its accelerator and deployment requirements match the project cluster.
+3. Click the model card's direct **Deploy** button.
+4. Review the deployment configuration, project resources, and any model-specific options.
+5. For a gated model, select an existing Hugging Face secret or create the required project secret first.
+6. Submit the deployment.
+7. Open **Deployed Models** to monitor and manage the deployment.
 
-5. If the model is **gated** (shown with a lock icon — common for Llama family models), a Hugging Face authentication section appears. Either click **Select existing token** to reuse a stored token, or click **Add new token** and enter your token name and value.
+See [Deploy and Run Inference](https://enterprise-ai.docs.amd.com/en/latest/workbench/inference/how-to-deploy-and-inference.html).
 
-![Deploy AIM panel for a gated model showing Hugging Face authentication fields](../images/04-workbench/05-hf-token-prompt.png)
+> [!WARNING]
+> **Manual verification required:** Deploy only an approved test model. Confirm the current form labels, resource options, gated-model flow, deployment states, endpoint information, and successful cleanup; deployment was not submitted during this review.
 
-6. Click **Deploy**. A confirmation notification will appear.
+> [!WARNING]
+> **Manual verification required:** Confirm that the retained deployment and Hugging Face screenshots below still match the current dialogs. The obsolete three-dot-menu screenshot reference was removed, but image assets were not edited.
+
+![Deploy AIM configuration panel](../images/04-workbench/03-deploy-config-panel.png)
+
+![Deployment performance selection](../images/04-workbench/04-deploy-performance-dropdown.png)
+
+![Gated model Hugging Face authentication](../images/04-workbench/05-hf-token-prompt.png)
+
+### Custom Models
+
+The **Custom Models** tab supports bringing models from Hugging Face or an organization's model registry into the project catalog. Click **Onboard model** to begin. After onboarding succeeds, use the resulting model entry's **Deploy** control when deployment is supported.
+
+See [Models](https://enterprise-ai.docs.amd.com/en/latest/workbench/models.html).
+
+> [!WARNING]
+> **Manual verification required:** Onboard only an approved test model. Confirm the supported registry choices, authentication fields, model identifier and revision fields, validation behavior, status states, and resulting model entry; onboarding was not executed.
+
+![Custom Models view](../images/04-workbench/workbench_custom_models_view.png)
+
+> [!WARNING]
+> **Manual verification required:** Confirm that the retained Custom Models screenshot shows the current Onboard model and Deploy controls.
+
+### Fine-tune models
+
+The **Fine-tune models** tab lists fine-tuning runs and provides **Fine-tune model**. The current table identifies the model name, canonical name, status, and related workloads.
+
+A typical workflow is:
+
+1. Add any required Hugging Face credential under **Secrets**.
+2. Upload a supported JSONL dataset under **Datasets**.
+3. Open **Models** > **Fine-tune models** and click **Fine-tune model**.
+4. Select the supported base model and dataset, then review the training configuration.
+5. Start the job and monitor its status.
+6. Review the output model and deploy it only after validation.
+
+See [Fine-tuning Overview](https://enterprise-ai.docs.amd.com/en/latest/workbench/training/overview.html).
+
+> [!WARNING]
+> **Manual verification required:** Start fine-tuning only with approved data and capacity. Confirm the current base-model choices, dataset compatibility, parameter fields, status states, output-model behavior, and cancellation or cleanup flow; no training job was started.
+
+![Fine-tune model dialog](../images/04-workbench/finetune_model_menu.png)
+
+> [!WARNING]
+> **Manual verification required:** Confirm that the retained fine-tuning screenshot matches the current Fine-tune models tab and dialog.
+
+### Deployed Models
+
+The **Deployed Models** tab is the current management view for model deployments. It lists name, canonical name, type, creator, creation time, and status. Open the row or action menu to inspect the deployment, retrieve connection information where available, or perform supported lifecycle actions.
+
+> [!WARNING]
+> **Manual verification required:** Using only a disposable deployment, confirm the details view, connection controls, lifecycle actions, deletion warning, dependency checks, and final removal. Model deletion was not executed.
+
+---
+
+## Chat and Compare
+
+Open **Chat** in the left navigation. The page provides two modes:
+
+- **Chat**: Select one deployed model and test prompts interactively.
+- **Compare**: Select multiple available models and compare their responses side by side.
+
+Use the model selector to choose a deployment. **Show settings** exposes available generation or retrieval settings for the selected model and mode. Record the settings used when comparing responses so results remain reproducible.
+
+See [Chat with a Model](https://enterprise-ai.docs.amd.com/en/latest/workbench/inference/chat.html) and [Compare Models](https://enterprise-ai.docs.amd.com/en/latest/workbench/inference/compare.html).
+
+---
+
+## Datasets
+
+Open **Datasets** to view dataset type, name, description, creator, and creation time. Workbench supports JSONL conversation datasets for supported fine-tuning workflows. Each line must be a valid JSON object conforming to the schema required by the selected training workflow; validate content and remove sensitive data before upload.
+
+For this workshop, the existing sample is:
+
+`https://github.com/isab8liu-alum/eai-suite-guides/blob/main/dataset/argilla-1.jsonl`
+
+See [Manage Datasets](https://enterprise-ai.docs.amd.com/en/latest/workbench/training/datasets.html).
+
+> [!WARNING]
+> **Manual verification required:** Upload only a non-sensitive test JSONL file. Confirm the current create/upload control label, accepted schema and size, metadata fields, validation errors, successful listing, and deletion or cleanup behavior; no dataset was uploaded.
+
+![Dataset upload](../images/04-workbench/uploading_dataset_finetuning.png)
+
+> [!WARNING]
+> **Manual verification required:** Confirm that the retained dataset-upload screenshot matches the current Datasets workflow.
+
+---
+
+## Project Secrets and Hugging Face Access
+
+Open **Secrets** to manage credentials in the selected project. The current page provides **Create new secret** and lists name, use case, creator, and creation time. Common use cases include:
+
+- A Hugging Face token for gated model downloads or onboarding.
+- Registry credentials for a custom-model source.
+- Generic application credentials required by a workspace or workload.
+
+Use the least-privileged credential necessary and follow the organization's rotation and revocation policy. See [Secrets](https://enterprise-ai.docs.amd.com/en/latest/workbench/secrets.html) and [Create a Hugging Face Token](https://enterprise-ai.docs.amd.com/en/latest/tutorials/create-hugging-face-token.html).
+
+> [!WARNING]
+> **Manual verification required:** Create only a disposable test secret. Confirm the current type and use-case choices, field redaction, scope, assignment behavior, edit or rotation controls, and deletion behavior. Do not paste a real credential during review.
+
+![Hugging Face token secret](../images/04-workbench/hugging_face_token_secrets.png)
+
+> [!WARNING]
+> **Manual verification required:** Confirm that the retained Hugging Face secret screenshot matches the current Secrets interface and contains no sensitive value.
+
+---
+
+## API Keys and Programmatic Access
+
+API keys are managed directly from **API Keys** and are scoped to the selected project. Click **Create API Key** to configure a key. Depending on the available policy and permissions, key creation and management can include:
+
+- An expiration date or unlimited lifetime.
+- Binding the key to one or more deployments.
+- Usage limits.
+- Renewal and revocation controls.
+
+The full secret is shown only once; store it in an approved secret manager and never commit it to source control. The table subsequently shows a redacted key together with creation metadata. Management API automation uses the documented Keycloak/OAuth2 flow rather than the inference API key itself.
+
+See [API Keys](https://enterprise-ai.docs.amd.com/en/latest/workbench/api-keys.html).
+
+> [!WARNING]
+> **Manual verification required:** Create only a disposable key. Confirm the one-time secret display, expiration or unlimited choice, renewal behavior, deployment binding, usage limits, redaction, revocation, and management-API authorization flow; no key was created or renewed.
+
+### Connect an application
+
+An AMD-deployed model can expose an OpenAI-compatible API, but compatibility does not mean every existing application works without configuration. The application must use:
+
+- The correct deployment endpoint or base URL.
+- The exact model identifier exposed by that deployment.
+- A valid project API key as the bearer token.
+- Request fields supported by the deployed model and serving implementation.
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="<deployment-base-url>/v1",
+    api_key="<project-api-key>",
+)
+
+response = client.chat.completions.create(
+    model="<deployed-model-identifier>",
+    messages=[{"role": "user", "content": "Hello!"}],
+)
+print(response.choices[0].message.content)
+```
+
+Retrieve endpoint and model values from the deployed-model connection information; do not infer them from the catalog display name.
+
+---
+
+## Workspace Catalog
+
+Open **Workspaces** to browse deployable development and AI environments. The current catalog contains:
+
+| Workspace | Typical use |
+|---|---|
+| **ComfyUI Text-to-Image** | Build and run node-based image-generation workflows. |
+| **MLflow Tracking Server** | Track experiments, parameters, metrics, and artifacts. |
+| **JupyterLab** | Use notebooks and terminals for interactive data science and model development. |
+| **Visual Studio Code** | Use a browser-based development environment connected to project resources. |
+
+Use the catalog filters to narrow workspace types, open the workspace details, and click **Deploy** when ready. Workspace settings and available resources depend on cluster configuration and project quota. See [Workspaces Overview](https://enterprise-ai.docs.amd.com/en/latest/workbench/workspaces/overview.html) and [MLflow Tracking Server](https://enterprise-ai.docs.amd.com/en/latest/workbench/workspaces/mlflow.html).
+
+> [!WARNING]
+> **Manual verification required:** Deploy each workspace type only in an approved test project. Confirm resource settings, secret or storage integration, launch URL, persistence, access control, stop/delete behavior, and quota release; no workspace was deployed.
+
+![Workbench workspace catalog](../images/04-workbench/workspaces_view.png)
+
+> [!WARNING]
+> **Manual verification required:** Confirm that the retained workspace screenshot includes the current catalog entries and Deploy controls.
+
+### Visual Studio Code benchmarking workflow
+
+A Visual Studio Code workspace can provide a project-connected terminal for testing a deployed endpoint. The existing workshop benchmark commands are retained below and were not executed during this review.
+
+```bash
+NUM_PROMPTS=20
+CONC=$((NUM_PROMPTS * 10))
+INPUT_LEN=1024
+OUTPUT_LEN=1024
+BASE_URL="<your-internal-url>"
+ENDPOINT="/v1/chat/completions"
+MODEL="<your-model-name>"
+
+vllm bench serve \
+  --ignore-eos \
+  --backend openai-chat \
+  --base-url "${BASE_URL}" \
+  --endpoint "${ENDPOINT}" \
+  --model "${MODEL}" \
+  --dataset-name random \
+  --random-input-len ${INPUT_LEN} \
+  --random-output-len ${OUTPUT_LEN} \
+  --num-prompts ${NUM_PROMPTS} \
+  --max-concurrency ${CONC} \
+  --trust-remote-code
+```
+
+```bash
+python --version
+python -m venv venv
+source venv/bin/activate
+pip install vllm
+chmod +x bench_serve.sh
+./bench_serve.sh
+```
+
+### Understanding Benchmark Output
+
+| Metric | Meaning | What to Look For |
+|--------|---------|------------------|
+| **Throughput** | Total tokens processed per second across all requests | Higher is better for batch workloads |
+| **TTFT** | Time to First Token — how quickly the model starts responding | Lower is better for interactive use |
+| **Latency** | End-to-end time per request | Lower is better; compare against your SLO target |
+| **Tokens/sec** | Per-request token generation rate | Higher means faster completions per user |
+
+> [!WARNING]
+> **Manual verification required:** The existing benchmark-output descriptions above, including the SLO reference, were retained unchanged. Validate them against the benchmark version and target workload before use.
+
+> [!WARNING]
+> **Manual verification required:** Validate package availability, command syntax, authentication, endpoint reachability, workload impact, and expected output in the target workspace before running these commands. They were not executed as part of this update.
+
+![Benchmark script in a workspace terminal](../images/04-workbench/bench_serve.png)
+
+> [!WARNING]
+> **Manual verification required:** Confirm that the retained benchmark screenshot remains appropriate for the current workspace image and does not expose endpoint or credential data.
+
+---
+
+## Intentionally Unchanged SLO and Timing Text
+
+> [!WARNING]
+> **Manual verification required:** The following deployment timing, Workloads-navigation, metric, real-time-update, and SLO statements were intentionally left unchanged per user instruction. Validate them against the target release and deployment before publication or operational use.
 
 ### Monitor Deployment Status
 
@@ -86,253 +332,55 @@ Once your model is running:
 
 > **Why do SLOs matter?** In enterprise deployments, teams need to commit to response time guarantees for their applications. The Workbench shows you whether the deployed model is meeting those targets before you put it in production.
 
-### Chat with Your Model
+---
 
-From the model details or Workloads view, click **Chat** to open a direct chat interface. Test your model's responses, evaluate quality, and compare multiple models side by side.
+## Deploy an AIM with AIM Engine
 
-------------------------------------------------------------------------
-
-## Fine-Tuning a Model
-
-Fine-tuning adapts a general-purpose model to your specific domain — customer support language, internal documentation style, industry terminology, or proprietary data formats. The Workbench makes this accessible without requiring ML engineering expertise.
-
-**Enterprise value:** Fine-tuned models are typically more accurate and consistent for domain-specific tasks than general models. You maintain ownership and control of your fine-tuned models — they never leave your cluster.
-
-### Step 1: Add a Hugging Face Token (If Needed)
-
-If you are fine-tuning a gated model (e.g., Llama family), you need a Hugging Face token. Navigate to **Settings** or the Hugging Face token section in the Workbench and add your token.
-
-![Hugging Face token configuration in Workbench](../images/04-workbench/hugging_face_token_secrets.png)
-
-### Step 2: Upload Training Data
-
-1. Click **Datasets** in the left sidebar
-2. Click **Upload**
-3. For this workshop, use the sample dataset:  
-   `https://github.com/isab8liu-alum/eai-suite-guides/blob/main/dataset/argilla-1.jsonl`
-
-![Upload a dataset for finetuning](../images/04-workbench/uploading_dataset_finetuning.png)
-
-4. In the upload dialog:
-   - **Dataset name** — Enter a descriptive name (e.g., `workshop-demo-data`)
-   - **Data type** — Select the appropriate format (`.jsonl` for instruction fine-tuning data)
-   - **Description** — Optional but recommended for future reference
-5. Upload your `.jsonl` file and click **Upload**
-
-> **What is JSONL format?** JSON Lines (`.jsonl`) is a standard format for fine-tuning data. Each line is a JSON object representing one training example — typically a `prompt` and a desired `response`. The Workbench accepts this format directly.
-
-### Step 3: Create the Fine-Tuned Model
-
-1. Click **Models** in the left sidebar
-2. Switch to the **Custom Models** tab
-
-![Custom Models view in AI Workbench](../images/04-workbench/workbench_custom_models_view.png)
-
-3. Click **Fine-tune model**
-4. In the configuration panel:
-   - **Base model** — Select the foundation model to start from
-   - **Dataset** — Select the dataset you uploaded
-   - **Training parameters** — Adjust epochs, learning rate, and batch size as needed (defaults work for initial experiments)
-5. Click **Start training**
-
-![Create fine-tuned model panel](../images/04-workbench/finetune_model_menu.png)
-
-The fine-tuning job appears in the **Workloads** view. Training time varies based on dataset size and model parameters — a small dataset on a compact model may complete in minutes; larger jobs take longer.
-
-Once complete, your fine-tuned model appears as a custom model in your catalog, ready to deploy the same way as any standard AIM.
-
-------------------------------------------------------------------------
-
-## API Keys and Programmatic Access
-
-To use deployed models from your own code, you need the model's endpoint URL and an API key.
-
-### Get the Model Endpoint
-
-1. Click **Models** in the left sidebar
-2. On the deployed model card, click the **three-dot menu (⋮)** and select **Connect**
-3. Copy the URL you need:
-   - **Internal URL** — Use this from within the cluster (e.g., from a Blueprint or workspace)
-   - **External URL** — Use this from outside the cluster (your local machine, your application)
-
-### Create an API Key
-
-1. Click **API Keys** in the left sidebar
-2. Click **Create API Key**
-3. Give it a name (e.g., `my-app-key`)
-4. Copy the key — **it is only shown once**
-
-**Using the API key in your code:**
-
-The deployed models are fully compatible with the OpenAI API format. Any library or tool that works with OpenAI will work with AMD-deployed models:
-
-```python
-from openai import OpenAI
-
-client = OpenAI(
-    base_url="<your-external-url>/v1",
-    api_key="<your-api-key>"
-)
-
-response = client.chat.completions.create(
-    model="<your-model-name>",
-    messages=[{"role": "user", "content": "Hello! What can you help me with?"}]
-)
-print(response.choices[0].message.content)
-```
-
-------------------------------------------------------------------------
-
-## VSCode Workspace and vLLM Benchmarking
-
-The AMD AI Workbench includes pre-built development workspaces that launch directly in the browser. The VSCode workspace is connected to your cluster and is pre-configured for AI development tasks.
-
-**Enterprise value:** Consistent, managed development environments eliminate the "works on my machine" problem. Developers get the same tools and cluster access without any local setup.
-
-### Launch the VSCode Workspace
-
-1. Click **Workspaces** in the left sidebar
-2. Click **View and deploy** next to the Visual Studio Code workspace
-3. Click **Customize Resource Allocation** and set **GPUs = 0** (the IDE itself doesn't need GPU)
-4. Once deployed, click **Launch** to open VS Code in your browser
-
-![Workspaces view showing VSCode](../images/04-workbench/workspaces_view.png)
-
-### Benchmark a Deployed Model with vLLM
-
-The `vllm bench serve` tool measures real-world model performance — throughput, latency, and time to first token — under realistic load. Use this to validate model performance before production use.
-
-**Get the model endpoint:**
-
-1. In the Workbench, click **Models**
-2. On the deployed model card, click **Connect**
-3. Copy the **Internal URL** — this is the endpoint used within the cluster
-
-**Create the benchmark script:**
-
-Create a new file called `bench_serve.sh` and paste:
-
-```bash
-NUM_PROMPTS=20                         # Number of concurrent test prompts
-CONC=$((NUM_PROMPTS * 10))             # Set concurrency to 10x prompt count
-INPUT_LEN=1024                         # Input token length per prompt
-OUTPUT_LEN=1024                        # Output token length per response
-BASE_URL="<your-internal-url>"         # Replace with your model's Internal URL
-ENDPOINT="/v1/chat/completions"
-MODEL="<your-model-name>"              # Replace with your deployed model name
-
-vllm bench serve \
-  --ignore-eos \
-  --backend openai-chat \
-  --base-url "${BASE_URL}" \
-  --endpoint "${ENDPOINT}" \
-  --model "${MODEL}" \
-  --dataset-name random \
-  --random-input-len ${INPUT_LEN} \
-  --random-output-len ${OUTPUT_LEN} \
-  --num-prompts ${NUM_PROMPTS} \
-  --max-concurrency ${CONC} \
-  --trust-remote-code
-```
-
-![Benchmark serve script in terminal](../images/04-workbench/bench_serve.png)
-
-**Run the benchmark from your terminal:**
-
-```bash
-python --version              # Verify Python is available
-
-python -m venv venv           # Create a virtual environment
-source venv/bin/activate      # Activate it
-
-pip install vllm              # Install vllm benchmarking tool
-
-chmod +x bench_serve.sh
-./bench_serve.sh
-```
-
-### Understanding Benchmark Output
-
-| Metric | Meaning | What to Look For |
-|--------|---------|------------------|
-| **Throughput** | Total tokens processed per second across all requests | Higher is better for batch workloads |
-| **TTFT** | Time to First Token — how quickly the model starts responding | Lower is better for interactive use |
-| **Latency** | End-to-end time per request | Lower is better; compare against your SLO target |
-| **Tokens/sec** | Per-request token generation rate | Higher means faster completions per user |
-
-------------------------------------------------------------------------
-
-## ComfyUI Workspace
-
-ComfyUI provides a visual, node-based interface for building and running AI image generation pipelines.
-
-**Enterprise value:** ComfyUI makes image generation workflows accessible to non-technical users and enables rapid prototyping of complex multi-step pipelines.
-
-1. Click **Workspaces** in the left sidebar and locate **ComfyUI Text-to-Image**
-
-![Workspaces view showing ComfyUI Text-to-Image](../images/04-workbench/workspaces_view.png)
-
-2. Click **View and deploy**, then allocate the appropriate number of GPUs based on workload demand
-3. Once deployment is ready, click **Launch**
-4. In ComfyUI, select one of the available text-to-image templates
-5. Enter a text prompt and run the workflow to generate images
-
-------------------------------------------------------------------------
-
-## Deploy an AIM via Command Line (AIM Engine)
-
-For teams that prefer automation, scripted deployments, or GitOps workflows, AIMs can be deployed via the **AIM Engine** — a Kubernetes operator that manages model lifecycle.
-
-**Enterprise value:** The AIM Engine enables infrastructure-as-code workflows, CI/CD pipeline integration, and programmatic management of AI model deployments at scale.
+AIM Engine supports Kubernetes-native model lifecycle management for automation and GitOps workflows. The current API uses `aim.eai.amd.com/v1alpha2` and the `AIMService` kind.
 
 ### Prerequisites
 
-- `kubectl` configured with cluster access (see the [Accessing the Cluster guide](https://enterprise-ai.docs.amd.com/en/latest/resource-manager/workloads/accessing-the-cluster.html))
-- AIM Engine installed in the cluster (included with EAI Suite installation)
+- `kubectl` configured for the intended cluster and namespace. See [Accessing the Cluster](https://enterprise-ai.docs.amd.com/en/latest/resource-manager/workloads/accessing-the-cluster.html).
+- AIM Engine installed and the selected AIM available to the cluster.
+- Project quota, secrets, and storage configured as required by the selected model.
 
-### Deploy an AIM Using a Manifest
-
-Create a file called `my-aim.yaml`:
+Create `my-aim.yaml`:
 
 ```yaml
-apiVersion: aimsoperator.amd.com/v1alpha1
-kind: AIModelService
+apiVersion: aim.eai.amd.com/v1alpha2
+kind: AIMService
 metadata:
-  name: my-llm
-  namespace: my-namespace      # Replace with your namespace
+  name: qwen-chat
+  namespace: my-namespace
 spec:
-  aimName: meta-llama/Llama-3.1-8B-Instruct   # Replace with your chosen model
-  performanceProfile: latency                   # Options: latency, throughput
+  model:
+    name: qwen-qwen3-32b
 ```
 
-Apply the manifest:
+Apply and monitor it:
 
 ```bash
 kubectl apply -f my-aim.yaml
+kubectl get aimservice -n my-namespace -w
 ```
 
-Monitor the deployment:
-
-```bash
-# Watch status in real time
-kubectl get aimodelservice -n my-namespace -w
-
-# Or check once
-kubectl get aimodelservice -n my-namespace
-```
-
-Wait for the status to show `Ready`. The AIM Engine automatically selects the correct container image, GPU configuration, and serving parameters for the hardware in your cluster.
-
-### Remove the Deployment
+Remove it when finished:
 
 ```bash
 kubectl delete -f my-aim.yaml
 ```
 
-### Finding Available AIMs for CLI Deployment
+See [AIMService](https://enterprise-ai.docs.amd.com/en/latest/aim-engine/concepts/services.html) and the [AIM Catalog](https://enterprise-ai.docs.amd.com/en/latest/aims/catalog/models.html).
 
-Browse the AIM catalog at: https://enterprise-ai.docs.amd.com/en/latest/aims/aims_catalog.html
+> [!WARNING]
+> **Manual verification required:** Replace the example namespace and model with values valid for the target cluster, then validate the CRD version, permissions, admission response, resource status, endpoint, and deletion in a non-production namespace. The manifest and commands were verified from documentation but not executed.
 
-------------------------------------------------------------------------
+---
+
+## Screenshot Review
+
+All existing image assets were left unchanged. References to screenshots that still support a workflow were retained and marked for comparison with the current UI. The reference to the clearly obsolete three-dot deployment-menu screenshot was removed.
+
+---
 
 **Next:** Proceed to [Blueprints](./05-4-blueprints.md) to deploy a complete AI application using a Solution Blueprint.
